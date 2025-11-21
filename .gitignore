@@ -1,0 +1,8 @@
+*.log
+omop_etl_env/
+source_tables/
+processed_source/
+combined_omop/
+final_omop/
+redundant/
+logs/
