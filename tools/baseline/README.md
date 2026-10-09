@@ -30,3 +30,14 @@ missing outputs, source retention, identity linkage and differences from the
 released dataset. Preserve failed runs as evidence. Record minimal execution
 repairs in distinct commits and distinguish their runs from untouched baseline
 runs. Unresolved source, mapping and historical-release questions remain open.
+
+Run the synthetic checks with `PYTHONDONTWRITEBYTECODE=1 python -m unittest
+discover -s tests -v`. These include the narrow gene-row execution repair and
+the comparator's identity and multiplicity behavior.
+
+`compare.py --run RUN --released RELEASE_DIRECTORY --repeat SECOND_RUN
+--output REPORT.json` writes aggregate comparison and reproducibility results.
+Generated row IDs are excluded from content matching; person IDs are translated
+through source identity and foreign-key membership is reported separately.
+Only common columns are compared, with differences in columns listed explicitly.
+The private report is diagnostic, not a conformance certificate.
