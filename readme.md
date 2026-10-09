@@ -2,6 +2,11 @@
 
 Release Version 1.0
 
+Development workflow: [input preparation](docs/input-preparation.md) supports
+both clinical filename conventions; [baseline tooling](tools/baseline/README.md)
+records isolated runs and regression comparisons. These additions do not establish
+a validated V1.1 release; the release description below remains historical V1.0.
+
 # Summary
 
 The Answer ALS Standardized OMOP Dataset provides a harmonized representation of the clinical data collected from more than one thousand participants in the [Answer ALS study](https://www.nature.com/articles/s41593-021-01006-0). The program generated clinical surveys, medical histories, ALSFRS R scores, environmental and family history questionnaires, and self reported genetic information. 

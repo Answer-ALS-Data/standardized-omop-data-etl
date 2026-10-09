@@ -67,6 +67,8 @@ class InputPreparation(unittest.TestCase):
             rows[0].append('free_text'); rows[1].append('quoted, text\nwith café')
             rows[1][rows[0].index('medhxyr')]='NA'
             rows.append(rows[1].copy())
+            index=rows[0].index('Participant_ID')
+            for row in rows: row.pop(index)
         self.rewrite('medical_history.csv',edit)
         self.run_prepare()
         with (self.root/'prepared/clinical/medical_history.csv').open(newline='') as f: rows=list(csv.DictReader(f))
@@ -98,6 +100,18 @@ class InputPreparation(unittest.TestCase):
     def test_supplied_id_conflict(self):
         self.rewrite('subjects.csv',lambda rows:rows[1].__setitem__(1,'SYNTHETIC_B'))
         with self.assertRaisesRegex(ValueError,'conflicts with crosswalk'):self.run_prepare()
+
+    def test_repeated_identical_crosswalk_does_not_multiply_rows(self):
+        write(self.crosswalk,['SubjectUID','Participant_ID'],[['0001','SYNTHETIC_A']]*2)
+        report=self.run_prepare()
+        self.assertEqual(report['crosswalk']['unique_subjects'],1)
+        self.assertTrue(all(f['rows']==1 for f in report['files']))
+
+    def test_missing_crosswalk_and_malformed_rows(self):
+        self.rewrite('subjects.csv',lambda rows:[row.pop(1) for row in rows])
+        with self.assertRaisesRegex(ValueError,'pinned crosswalk'):self.run_prepare(crosswalk=False)
+        self.rewrite('subjects.csv',lambda rows:rows[1].append('extra'))
+        with self.assertRaisesRegex(ValueError,'row width'):self.run_prepare()
 
     def test_unmatched_uid_and_opaque_leading_zeroes(self):
         self.rewrite('subjects.csv',lambda rows:rows[1].__setitem__(0,'1'))
