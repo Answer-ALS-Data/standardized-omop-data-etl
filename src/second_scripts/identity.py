@@ -1,6 +1,6 @@
-"""Strict numeric identity parsing for AALS Participant_ID and generated keys.
+"""Separate opaque source identity from strict generated numeric keys.
 
-SubjectUID is an opaque source key and must never pass through this parser.
+SubjectUID and Participant_ID are opaque keys; never pass them to integer_id.
 """
 import csv
 import re
@@ -10,6 +10,15 @@ from pathlib import Path
 
 class IdentityError(ValueError):
     pass
+
+
+def source_id(value):
+    if not isinstance(value, str):
+        raise IdentityError('Source identity must be text')
+    text = value.strip()
+    if not text or text.lower() in ('na', 'nan', 'none', 'null'):
+        raise IdentityError('Missing source identity')
+    return text
 
 
 def integer_id(value):

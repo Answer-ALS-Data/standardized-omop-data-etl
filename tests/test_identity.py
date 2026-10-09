@@ -7,7 +7,7 @@ import unittest
 
 SRC = Path(__file__).resolve().parents[1]/'src/second_scripts'
 sys.path.insert(0, str(SRC))
-from identity import IdentityError, final_id, integer_id, read_table, write_table
+from identity import IdentityError, final_id, integer_id, source_id, read_table, write_table
 import person_id_map
 import transform_ids
 
@@ -21,11 +21,16 @@ class IdentityTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(IdentityError):
                 integer_id(value)
 
+    def test_opaque_source_identity(self):
+        self.assertEqual(source_id(' SYN_001 '), 'SYN_001')
+        self.assertNotEqual(source_id('001'), source_id('1'))
+        self.assertNotEqual(source_id('7.0'), source_id('7'))
+
     def test_no_truncation(self):
         self.assertEqual(final_id('9999999'), '119999999')
         with self.assertRaises(IdentityError):final_id('10000000')
 
-    def fixture(self, root, people=('20','30'), events=('30.0','20.00')):
+    def fixture(self, root, people=('SYN_A','SYN_B'), events=('SYN_B','SYN_A')):
         write_table(root/'person.csv',['person_id','year_of_birth'],
                     [{'person_id':p,'year_of_birth':'1970'} for p in people])
         write_table(root/'death.csv',['death_id','person_id','death_date','cause_source_value'],
@@ -45,7 +50,7 @@ class IdentityTests(unittest.TestCase):
 
     def test_orphan_blocks_before_csv_changes(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d); self.fixture(root,events=('30','99'))
+            root=Path(d); self.fixture(root,events=('SYN_B','SYN_ORPHAN'))
             before={p.name:p.read_bytes() for p in root.glob('*.csv')}
             with self.assertRaises(IdentityError):person_id_map.remap(root)
             self.assertEqual(before,{p.name:p.read_bytes() for p in root.glob('*.csv')})
@@ -58,18 +63,18 @@ class IdentityTests(unittest.TestCase):
 
     def test_duplicate_people_normalized_rejected(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d); self.fixture(root,people=('20','20.0'))
+            root=Path(d); self.fixture(root,people=('SYN_A',' SYN_A '))
             with self.assertRaises(IdentityError):person_id_map.remap(root)
 
     def test_row_order_identity_not_allocation(self):
         # Until an allocation policy is reviewed, IDs change with PERSON order,
         # but each event must still resolve to the correct source participant.
-        for people in [('20','30'),('30','20')]:
+        for people in [('SYN_A','SYN_B'),('SYN_B','SYN_A')]:
             with self.subTest(people=people), tempfile.TemporaryDirectory() as d:
                 root=Path(d);self.fixture(root,people=people)
                 person_id_map.remap(root)
                 reverse={r['person_id']:r['Participant_ID'] for r in read_table(root/'person_id_mapping.csv')[1]}
-                self.assertEqual([reverse[r['person_id']] for r in read_table(root/'death.csv')[1]],['30','20'])
+                self.assertEqual([reverse[r['person_id']] for r in read_table(root/'death.csv')[1]],['SYN_B','SYN_A'])
 
     def test_invalid_late_table_does_not_publish_earlier(self):
         with tempfile.TemporaryDirectory() as d:
@@ -79,7 +84,7 @@ class IdentityTests(unittest.TestCase):
 
     def test_multiplicity_retained(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);self.fixture(root,events=('30','30.0'))
+            root=Path(d);self.fixture(root,events=('SYN_B','SYN_B'))
             person_id_map.remap(root)
             self.assertEqual(len(read_table(root/'death.csv')[1]),2)
 
