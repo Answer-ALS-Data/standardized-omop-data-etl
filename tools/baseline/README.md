@@ -1,0 +1,32 @@
+# Reproduce a pinned ETL revision
+
+Run `run.py` with a specific Git revision, original-format clinical input directory,
+auxiliary source directory, and a fresh output directory outside this checkout.
+Use Python 3.12.14 with the versions in `requirements.lock.txt` to reproduce the
+recorded baseline environment. A standard virtual environment can install that
+file with `python -m pip install -r tools/baseline/requirements.lock.txt`.
+
+```sh
+python tools/baseline/run.py \
+  --ref COMMIT_SHA \
+  --clinical /path/to/original-format-clinical-inputs \
+  --auxiliary /path/to/auxiliary-source-tables \
+  --output /path/to/private-runs/new-run
+```
+
+The runner exports committed code without working-tree edits, copies inputs,
+and invokes the original pipeline in that separate directory. It records the
+actual environment, input hashes, output schemas/counts/hashes, log-level counts,
+return code, missing expected outputs and source/code integrity checks.
+The original pipeline may rename staged files and clear generated directories;
+never execute it against source snapshots. Existing run directories are refused.
+
+Run folders contain participant data and potentially sensitive logs. Keep them
+outside Git and do not attach them to public issues or pull requests. Only
+synthetic test fixtures and generic tooling belong in this repository.
+
+An exit code of zero is not a clinical or OMOP validation pass. Review errors,
+missing outputs, source retention, identity linkage and differences from the
+released dataset. Preserve failed runs as evidence. Record minimal execution
+repairs in distinct commits and distinguish their runs from untouched baseline
+runs. Unresolved source, mapping and historical-release questions remain open.

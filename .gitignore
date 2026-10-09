@@ -6,3 +6,8 @@ combined_omop/
 final_omop/
 redundant/
 logs/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+baseline-runs/
