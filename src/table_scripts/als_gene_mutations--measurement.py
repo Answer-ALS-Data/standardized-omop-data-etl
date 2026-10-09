@@ -106,6 +106,13 @@ def als_gene_mutations_to_measurement(source_df, index_date_str):
 
     # Process each row in the source data
     for _, row in source_df.iterrows():
+        # A date is needed only when this row can emit a measurement.
+        # Keep the existing policy for mapped responses with missing dates.
+        if not any(
+            pd.notna(row.get(test_var)) and row[test_var] in [1, 2]
+            for test_var in gene_mappings
+        ):
+            continue
         person_id = row["Participant_ID"]
         # Calculate visit date using relative_day_to_date and format as YYYY-MM-DD
         visit_date = relative_day_to_date(row["Visit_Date"], index_date).strftime(
