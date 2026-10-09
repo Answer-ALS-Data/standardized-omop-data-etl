@@ -65,6 +65,7 @@ def csv_profile(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ref', required=True)
+    parser.add_argument('--medical-history-profile', type=Path, help='Explicit JSON with medical_history_units (preparation.json is accepted)')
     parser.add_argument('--identity-policy', type=Path, help='Pinned person_id_registry.csv and exclusions.json directory')
     parser.add_argument('--clinical', required=True, type=Path)
     parser.add_argument('--auxiliary', required=True, type=Path)
@@ -94,6 +95,11 @@ def main():
         if output.is_relative_to(policy) or policy.is_relative_to(output):
             parser.error('Output must not overlap identity policy inputs')
         sources += [(policy/n, Path('identity')/n) for n in ('person_id_registry.csv','exclusions.json')]
+    if args.medical_history_profile is not None:
+        profile = args.medical_history_profile.resolve()
+        if profile.is_relative_to(output):
+            parser.error('Date profile must be outside the run output')
+        sources.append((profile, Path('medical_history_date_profile.json')))
     for p, _ in sources:
         if not p.is_file():
             parser.error('Missing input: ' + str(p))

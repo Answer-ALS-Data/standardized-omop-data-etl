@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
-from helpers import year_to_date, check_missing_concept_ids, get_visit_occurrence_id
+from medical_history_dates import DateContext
+from helpers import check_missing_concept_ids, get_visit_occurrence_id
 import os
 from pathlib import Path
 from datetime import datetime
@@ -53,6 +54,8 @@ def main():
         # Filter USAGI mapping to only include concepts with domainId = "Procedure"
         usagi_mapping = usagi_mapping[usagi_mapping["domainId"] == "Procedure"]
 
+        date_context = DateContext()
+
         # Initialize output dataframe
         output_columns = [
             "person_id",
@@ -65,12 +68,12 @@ def main():
         output_data = pd.DataFrame(columns=output_columns)
 
         # Process each row
-        for _, row in source_data.iterrows():
+        for source_index, row in source_data.iterrows():
             # Get person_id
             person_id = row["Participant_ID"]
 
-            # Get procedure_date using year_to_date
-            procedure_date = year_to_date(row["medhxyr"])
+            # Get procedure_date using the explicit input profile
+            procedure_date, date_source = date_context.convert(source_index, row["medhxyr"])
 
             # Create visit_occurrence_id using helper function
             visit_occurrence_id = get_visit_occurrence_id(
@@ -87,6 +90,7 @@ def main():
 
             # Only add rows to output if there was a match in the USAGI file
             if has_match:
+                date_context.emitted(len(concept_mappings))
                 # Create a row for each matching concept
                 for concept_id, concept_name, equivalence in concept_mappings:
                     output_data = pd.concat(
@@ -97,7 +101,7 @@ def main():
                                     {
                                         "person_id": person_id,
                                         "procedure_concept_id": concept_id,
-                                        "procedure_source_value": f"medical_history+medhxdsc (Description): {medhxdsc_value} | medical_history+medhxyr (Year of Diagnosis): {row['medhxyr']} | +equivalence (usagi omop mapping equivalence): {equivalence}",
+                                        "procedure_source_value": f"medical_history+medhxdsc (Description): {medhxdsc_value} | {date_source} | +equivalence (usagi omop mapping equivalence): {equivalence}",
                                         "procedure_date": procedure_date,
                                         "procedure_type_concept_id": 32851,  # Healthcare professional filled survey
                                         "visit_occurrence_id": visit_occurrence_id,
@@ -107,6 +111,8 @@ def main():
                         ],
                         ignore_index=True,
                     )
+
+        date_context.save("procedure_occurrence")
 
         # Check for missing concept IDs
         check_missing_concept_ids(output_data, "procedure_concept_id")

@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
-from helpers import year_to_date, check_missing_concept_ids, get_visit_occurrence_id
+from medical_history_dates import DateContext
+from helpers import check_missing_concept_ids, get_visit_occurrence_id
 import os
 from pathlib import Path
 from datetime import datetime
@@ -76,6 +77,8 @@ def main():
         # Filter USAGI mapping to only include concepts with domainId = "Drug"
         usagi_mapping = usagi_mapping[usagi_mapping["domainId"] == "Drug"]
 
+        date_context = DateContext()
+
         # Initialize output dataframe
         output_columns = [
             "person_id",
@@ -92,12 +95,12 @@ def main():
         output_data = pd.DataFrame(columns=output_columns)
 
         # Process each row
-        for _, row in source_data.iterrows():
+        for source_index, row in source_data.iterrows():
             # Get person_id
             person_id = row["Participant_ID"]
 
-            # Get drug_exposure_start_date using year_to_date
-            drug_exposure_start_date = year_to_date(row["medhxyr"])
+            # Get drug_exposure_start_date using the explicit input profile
+            drug_exposure_start_date, date_source = date_context.convert(source_index, row["medhxyr"])
             drug_exposure_end_date = drug_exposure_start_date  # Use same date for end date
             verbatim_end_date = drug_exposure_start_date
 
@@ -116,6 +119,7 @@ def main():
 
             # Only add rows to output if there was a match in the USAGI file
             if has_match:
+                date_context.emitted(len(concept_mappings))
                 # Create a row for each matching concept
                 for concept_id, concept_name, equivalence in concept_mappings:
                     # Build drug_source_value using new format
@@ -125,9 +129,8 @@ def main():
                     if medhxdsc_value and pd.notna(medhxdsc_value):
                         source_parts.append(format_source_value("medical_history", "medhxdsc", "Description", medhxdsc_value))
                     
-                    # Add year
-                    if pd.notna(row.get("medhxyr")):
-                        source_parts.append(format_source_value("medical_history", "medhxyr", "Year of Diagnosis", row["medhxyr"]))
+                    # Preserve raw date and its interpretation, including placeholders.
+                    source_parts.append(date_source)
                     
                     # Add still present status
                     if pd.notna(row.get("medhxprs")):
@@ -164,6 +167,8 @@ def main():
                         ],
                         ignore_index=True,
                     )
+
+        date_context.save("drug_exposure")
 
         # Check for missing concept IDs
         check_missing_concept_ids(output_data, ["drug_concept_id", "route_concept_id"])
