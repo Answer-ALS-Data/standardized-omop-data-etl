@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import sys
+import json
 import tempfile
 import unittest
 
@@ -67,14 +68,14 @@ class IdentityTests(unittest.TestCase):
             with self.assertRaises(IdentityError):person_id_map.remap(root)
 
     def test_row_order_identity_not_allocation(self):
-        # Until an allocation policy is reviewed, IDs change with PERSON order,
-        # but each event must still resolve to the correct source participant.
+        # New allocations are sorted by source ID, independent of PERSON row order.
         for people in [('SYN_A','SYN_B'),('SYN_B','SYN_A')]:
             with self.subTest(people=people), tempfile.TemporaryDirectory() as d:
                 root=Path(d);self.fixture(root,people=people)
                 person_id_map.remap(root)
                 reverse={r['person_id']:r['Participant_ID'] for r in read_table(root/'person_id_mapping.csv')[1]}
                 self.assertEqual([reverse[r['person_id']] for r in read_table(root/'death.csv')[1]],['SYN_B','SYN_A'])
+                self.assertEqual(reverse, {'1':'SYN_A','2':'SYN_B'})
 
     def test_invalid_late_table_does_not_publish_earlier(self):
         with tempfile.TemporaryDirectory() as d:
@@ -87,6 +88,67 @@ class IdentityTests(unittest.TestCase):
             root=Path(d);self.fixture(root,events=('SYN_B','SYN_B'))
             person_id_map.remap(root)
             self.assertEqual(len(read_table(root/'death.csv')[1]),2)
+
+
+    def pinned(self, root):
+        path=root/'registry.csv'
+        write_table(path,['Participant_ID','person_id'],[
+            {'Participant_ID':'SYN_B','person_id':'110000042'},
+            {'Participant_ID':'ABSENT_HISTORICAL','person_id':'110000099'}])
+        return path
+
+    def rules(self, root, expected=1):
+        path=root/'rules.json'
+        path.write_text(json.dumps({'version':1,'exclusions':[{
+            'Participant_ID':'SYN_ORPHAN','table':'death.csv','expected_rows':expected,
+            'approved_on':'2026-10-09','reason':'Synthetic approved missing PERSON exception'}]}))
+        return path
+
+    def test_registry_preserves_and_reserves_ids(self):
+        for people in [('SYN_A','SYN_B'),('SYN_B','SYN_A')]:
+            with self.subTest(people=people), tempfile.TemporaryDirectory() as d:
+                root=Path(d);self.fixture(root,people=people)
+                person_id_map.remap(root,self.pinned(root))
+                result={r['Participant_ID']:r['person_id'] for r in read_table(root/'person_id_registry.csv')[1]}
+                self.assertEqual(result,{'SYN_A':'110000100','SYN_B':'110000042','ABSENT_HISTORICAL':'110000099'})
+                # A later build reuses the extended registry, not the original seed.
+                self.fixture(root,people=people)
+                person_id_map.remap(root,root/'person_id_registry.csv')
+                self.assertEqual(result,{r['Participant_ID']:r['person_id'] for r in read_table(root/'person_id_registry.csv')[1]})
+
+    def test_approved_exclusion_is_exact_and_counted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);self.fixture(root,events=('SYN_B','SYN_ORPHAN'))
+            report=person_id_map.remap(root,self.pinned(root),self.rules(root))
+            self.assertEqual(report['clinical_rows_dropped'],1)
+            self.assertEqual(len(read_table(root/'death.csv')[1]),1)
+            self.assertEqual(report['reviewed_exclusions'][0]['record_ordinal'],2)
+
+    def test_exclusion_does_not_cover_other_orphans(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);self.fixture(root,events=('SYN_ORPHAN','ANOTHER_ORPHAN'))
+            before=(root/'death.csv').read_bytes()
+            with self.assertRaises(IdentityError):person_id_map.remap(root,self.pinned(root),self.rules(root))
+            self.assertEqual(before,(root/'death.csv').read_bytes())
+
+    def test_stale_exclusion_count_blocks(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);self.fixture(root,events=('SYN_ORPHAN','SYN_ORPHAN'))
+            with self.assertRaises(IdentityError):person_id_map.remap(root,self.pinned(root),self.rules(root))
+
+    def test_recovered_demographics_requires_review(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);self.fixture(root,people=('SYN_ORPHAN',),events=('SYN_ORPHAN',))
+            with self.assertRaises(IdentityError):person_id_map.remap(root,self.pinned(root),self.rules(root))
+
+    def test_registry_collision_blocks(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);self.fixture(root)
+            path=self.pinned(root)
+            write_table(path,['Participant_ID','person_id'],[
+                {'Participant_ID':'SYN_A','person_id':'110000042'},
+                {'Participant_ID':'SYN_B','person_id':'110000042'}])
+            with self.assertRaises(IdentityError):person_id_map.remap(root,path)
 
 
 if __name__=='__main__':unittest.main()

@@ -65,6 +65,7 @@ def csv_profile(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ref', required=True)
+    parser.add_argument('--identity-policy', type=Path, help='Pinned person_id_registry.csv and exclusions.json directory')
     parser.add_argument('--clinical', required=True, type=Path)
     parser.add_argument('--auxiliary', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
@@ -88,6 +89,11 @@ def main():
         parser.error('Missing original-format clinical tables: ' + ', '.join(missing))
     sources = [(p, Path(p.name)) for p in clinical_files]
     sources += [(auxiliary / n, Path(n)) for n in AUXILIARY]
+    if args.identity_policy is not None:
+        policy = args.identity_policy.resolve()
+        if output.is_relative_to(policy) or policy.is_relative_to(output):
+            parser.error('Output must not overlap identity policy inputs')
+        sources += [(policy/n, Path('identity')/n) for n in ('person_id_registry.csv','exclusions.json')]
     for p, _ in sources:
         if not p.is_file():
             parser.error('Missing input: ' + str(p))
