@@ -1,55 +1,58 @@
-import pandas as pd
-import os
+"""Validate all person links before remapping any table; never invent orphan IDs."""
+import json
+from pathlib import Path
+from identity import IdentityError, integer_id, read_table, write_table
 
-# Read the original person.csv file
-person_df = pd.read_csv("combined_omop/person.csv")
+TABLES = ('procedure_occurrence', 'observation', 'visit_occurrence',
+          'condition_occurrence', 'measurement', 'device_exposure', 'death',
+          'drug_exposure', 'observation_period')
 
-# Create a mapping DataFrame with original IDs and new sequential IDs
-mapping_df = pd.DataFrame(
-    {
-        "Participant_ID": person_df["person_id"],
-        "person_id": range(1, len(person_df) + 1),
-    }
-)
 
-# Save the mapping to a new CSV file
-mapping_df.to_csv("combined_omop/person_id_mapping.csv", index=False)
+def remap(input_dir='combined_omop'):
+    root = Path(input_dir)
+    columns, people = read_table(root/'person.csv')
+    if 'person_id' not in columns:
+        raise IdentityError('PERSON lacks person_id')
+    mapping = {}
+    for ordinal, row in enumerate(people, 1):
+        key = integer_id(row['person_id'])
+        if key in mapping:
+            raise IdentityError('Duplicate source identity in PERSON')
+        # Preserve the existing allocation convention pending the release-ID decision.
+        mapping[key] = str(ordinal)
+    tables = {'person.csv': (columns, people)}
+    errors = []
+    for table in TABLES:
+        path = root/(table+'.csv')
+        if not path.exists():
+            continue
+        cols, rows = read_table(path)
+        if 'person_id' not in cols:
+            raise IdentityError(f'{path.name} lacks person_id')
+        for ordinal, row in enumerate(rows, 1):
+            try:
+                key = integer_id(row['person_id'])
+                if key not in mapping:
+                    raise IdentityError('Source identity absent from PERSON')
+                row['person_id'] = mapping[key]
+            except IdentityError as exc:
+                errors.append({'table':path.name, 'record_ordinal':ordinal, 'reason':str(exc)})
+        tables[path.name] = (cols, rows)
+    report = {'status':'blocked' if errors else 'passed', 'person_rows':len(people),
+              'allocation':'existing PERSON row order; cross-release policy unresolved',
+              'table_rows':{n:len(rows) for n,(_,rows) in tables.items()},
+              'unresolved_links':errors, 'clinical_rows_dropped':0}
+    (root/'identity-validation.json').write_text(json.dumps(report, indent=2)+'\n')
+    if errors:
+        raise IdentityError(f'{len(errors)} unresolved person links; see identity-validation.json; no CSVs changed')
+    for row in people:
+        row['person_id'] = mapping[integer_id(row['person_id'])]
+    for name, (cols, rows) in tables.items():
+        write_table(root/name, cols, rows)
+    write_table(root/'person_id_mapping.csv', ['Participant_ID','person_id'],
+                [{'Participant_ID':key,'person_id':value} for key,value in mapping.items()])
+    return report
 
-# Update the person.csv file with new IDs
-person_df["person_id"] = mapping_df["person_id"]
-person_df.to_csv("combined_omop/person.csv", index=False)
 
-print(f"Created mapping file with {len(mapping_df)} entries")
-print("Updated person.csv with new sequential IDs")
-
-# Create a dictionary for faster lookups
-id_mapping = dict(zip(mapping_df["Participant_ID"], mapping_df["person_id"]))
-
-# List of tables that might contain person_id
-tables_to_update = [
-    "procedure_occurrence.csv",
-    "observation.csv",
-    "visit_occurrence.csv",
-    "condition_occurrence.csv",
-    "measurement.csv",
-    "device_exposure.csv",
-    "death.csv",
-    "drug_exposure.csv",
-    "observation_period.csv",
-]
-
-# Process each table
-for table in tables_to_update:
-    file_path = os.path.join("combined_omop", table)
-    if os.path.exists(file_path):
-        print(f"\nProcessing {table}...")
-        df = pd.read_csv(file_path)
-
-        if "person_id" in df.columns:
-            # Update person_ids using the mapping
-            df["person_id"] = df["person_id"].map(id_mapping)
-            # Save the updated file
-            df.to_csv(file_path, index=False)
-            print(f"Updated {table} with new person_ids")
-        else:
-            print(f"Skipping {table} - no person_id column found")
+if __name__ == '__main__':
+    remap()
