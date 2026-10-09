@@ -5,7 +5,8 @@ Release Version 1.0
 Development workflow: [input preparation](docs/input-preparation.md) supports
 both clinical filename conventions; [baseline tooling](tools/baseline/README.md)
 records isolated runs and regression comparisons. [Identity handling](docs/identity-handling.md)
-requires a pinned person-ID registry and reviewed exclusion policy. These additions do not establish
+requires a pinned person-ID registry and reviewed exclusion policy; [medical-history dates](docs/medical-history-dates.md)
+require an explicit year or relative-day profile. These additions do not establish
 a validated V1.1 release; the release description below remains historical V1.0.
 
 # Summary

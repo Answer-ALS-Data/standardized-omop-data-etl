@@ -16,6 +16,8 @@ python tools/baseline/run.py \
 
 For current V1.1 development revisions, also pass `--identity-policy /path/to/private-policy`, containing the pinned `person_id_registry.csv` and `exclusions.json`. Historical revisions before identity-policy support do not require this argument. See [identity handling](../../docs/identity-handling.md); these policy inputs are copied and hashed alongside the clinical and auxiliary inputs.
 
+The medical-history update also requires `--medical-history-profile /path/to/preparation.json` for current revisions. See [date profiles](../../docs/medical-history-dates.md); old and September inputs must use their respective explicit profiles.
+
 The runner exports committed code without working-tree edits, copies inputs,
 and invokes the original pipeline in that separate directory. It records the
 actual environment, input hashes, output schemas/counts/hashes, log-level counts,
