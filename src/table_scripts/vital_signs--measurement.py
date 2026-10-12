@@ -116,7 +116,7 @@ def vital_signs_to_measurement(source_df, index_date_str):
         },
         "bpsys": {
             "concept_id": 4152194,
-            "unit_concept_id": 37546954,  # mmHg
+            "unit_concept_id": 8876,  # UCUM millimeter mercury column
             "value_as_concept_ids": {
                 1: 4060833,  # Standing
                 2: 4060834,  # Sitting
@@ -125,15 +125,15 @@ def vital_signs_to_measurement(source_df, index_date_str):
         },
         "bpdias": {
             "concept_id": 4154790,
-            "unit_concept_id": 37546954,  # mmHg
+            "unit_concept_id": 8876,  # UCUM millimeter mercury column
             "value_as_concept_ids": {
                 1: 4060833,  # Standing
                 2: 4060834,  # Sitting
                 3: 4060832,  # Supine
             },
         },
-        "hr": {"concept_id": 3027018, "unit_concept_id": 4118124},  # beats/min
-        "rr": {"concept_id": 4313591, "unit_concept_id": 4117833},  # breaths/min
+        "hr": {"concept_id": 3027018, "unit_concept_id": 8483},  # UCUM counts/min; measurement identifies heart rate
+        "rr": {"concept_id": 4313591, "unit_concept_id": 8483},  # UCUM counts/min; measurement identifies respiratory rate
         "weight": {
             "concept_id": 3025315,
             "unit_concept_id": 9529,  # kilogram (always convert to metric)

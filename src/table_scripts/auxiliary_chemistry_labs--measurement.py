@@ -190,7 +190,7 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
             value_source_value = " | ".join(value_source_parts)
 
             # Determine value_as_concept_id based on norm status
-            value_as_concept_id = 4069590 if row[norm_var] == 1 else 40641582
+            value_as_concept_id = 4069590 if row[norm_var] == 1 else 4135493
 
             # Special handling for creatine kinase units and concept IDs
             if source_var == "acckrslt":
