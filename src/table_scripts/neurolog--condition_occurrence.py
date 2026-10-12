@@ -24,29 +24,29 @@ logging.basicConfig(
 )
 
 
-def neurolog_hidden2_to_condition_occurrence_condition_concept_id(
-    source_value, usagi_mapping
-):
-    """Convert NEUROLOG hidden2 values to condition concept IDs using USAGI mapping"""
-    try:
-        # Check if source_value is empty or null
-        if pd.isna(source_value) or source_value == "" or str(source_value).strip() == "":
-            return None, None
-        
-        mapping = usagi_mapping[usagi_mapping["sourceName"] == source_value]
-        if not mapping.empty:
-            return mapping.iloc[0]["conceptId"], mapping.iloc[0]["conceptName"]
-        return None, None
-    except Exception as e:
-        logging.error(f"Error mapping hidden2 value {source_value}: {str(e)}")
-        return None, None
+def prepare_mapping(usagi_mapping):
+    """Trim label edges only; ambiguous keys require review, never first-row wins."""
+    mapping = usagi_mapping.copy()
+    mapping.index = mapping["sourceName"].fillna("").astype(str).str.strip()
+    if mapping.index.duplicated().any():
+        raise ValueError("Ambiguous NEUROLOG source labels after trimming")
+    return mapping
+
+
+def find_mapping(source_value, mapping):
+    if pd.isna(source_value):
+        return None
+    key = str(source_value).strip()
+    if not key or key not in mapping.index:
+        return None
+    return mapping.loc[key]
 
 
 def main():
     try:
         # Read source data
         source_data = pd.read_csv("source_tables/neurolog.csv")
-        usagi_mapping = pd.read_csv("source_tables/usagi/neurolog_mapping_v3.csv")
+        usagi_mapping = prepare_mapping(pd.read_csv("source_tables/usagi/neurolog_mapping_v3.csv"))
 
         # Initialize output dataframe
         output_columns = [
@@ -82,25 +82,11 @@ def main():
 
             # Process hidden2 value
             hidden2_value = row["hidden2"]
-            condition_concept_id, _ = (
-                neurolog_hidden2_to_condition_occurrence_condition_concept_id(
-                    hidden2_value, usagi_mapping
-                )
-            )
-            
-            # Skip rows where condition_concept_id is None (empty or unmapped values)
-            if condition_concept_id is None:
+            mapping = find_mapping(hidden2_value, usagi_mapping)
+            if mapping is None:
                 continue
-            
-            # Get USAGI mapping equivalence
-            mapping_equivalence = "EQUAL"  # Default to EQUAL for now
-            try:
-                mapping = usagi_mapping[usagi_mapping["sourceName"] == hidden2_value]
-                if not mapping.empty:
-                    mapping_equivalence = mapping.iloc[0].get("equivalence", "EQUAL")
-            except Exception as e:
-                logging.warning(f"Could not determine mapping equivalence for {hidden2_value}: {str(e)}")
-                mapping_equivalence = "EQUAL"
+            condition_concept_id = mapping["conceptId"]
+            mapping_equivalence = mapping.get("equivalence", "EQUAL")
 
             # Create condition_source_value with new format
             source_parts = []
