@@ -106,6 +106,7 @@ table_scripts = [
     "medical_history--device_exposure.py",
     "medical_history--drug_exposure.py",
     "medical_history--procedure_occurrence.py",
+    "medical_history--observation.py",
     "mortality--death.py",
     "neurolog--condition_occurrence.py",
     "vital_signs--measurement.py"

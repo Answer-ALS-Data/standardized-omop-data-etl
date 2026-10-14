@@ -12,8 +12,9 @@ PRIORITIES = {
         "alsfrs_r",
         "family_history_log",
         "environmental_questionnaire",
+        "medical_history",
     ],
-    "measurement": ["als_gene_mutations", "auxiliary_chemistry_labs", "vital_signs"],
+    "measurement": ["als_gene_mutations", "auxiliary_chemistry_labs", "vital_signs", "environmental_questionnaire"],
     "drug_exposure": ["answer_als_medications_log", "medical_history"],
 }
 
@@ -35,7 +36,9 @@ def get_concept_info(df, concept_id_col):
         df[concept_id_col] = pd.to_numeric(df[concept_id_col], errors="coerce").astype(
             "Int64"
         )
-        return df[["person_id", concept_id_col]].drop_duplicates()
+        # Zero means unknown, not a shared clinical identity across sources.
+        return df.loc[df[concept_id_col].notna() & df[concept_id_col].ne(0),
+                      ["person_id", concept_id_col]].drop_duplicates()
     return pd.DataFrame()
 
 

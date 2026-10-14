@@ -482,7 +482,7 @@ def main():
                     try:
                         years = float(row["yrssmktb"])
                         packs_per_day = float(row["smkavgtb"])
-                        pack_years = years * packs_per_day * 365
+                        pack_years = years * packs_per_day
                         records.append(
                             {
                                 "person_id": person_id,
@@ -568,7 +568,7 @@ def main():
         ]
 
         # Remove any duplicate rows that might have been created
-        output_data = pd.DataFrame(records)[column_order].drop_duplicates()
+        output_data = pd.DataFrame(records, columns=column_order).drop_duplicates()
         logging.info(f"Created output DataFrame with {len(output_data)} rows")
 
         # Check for missing concept IDs only for rows that should have them
@@ -581,6 +581,25 @@ def main():
         # Copy the fixed concept rows back to the main dataframe
         for col in ["value_as_concept_id"]:
             output_data.loc[concept_rows.index, col] = concept_rows[col]
+
+        # Pack-years is a Measurement. Preserve source values and the existing
+        # date/identity policy; do not emit a duplicate Observation contribution.
+        packs = output_data[output_data["observation_concept_id"] == 903650].copy()
+        pack_measurements = packs[[
+            "person_id", "observation_concept_id", "observation_source_value",
+            "observation_date", "observation_type_concept_id", "value_as_number",
+            "value_source_value", "unit_concept_id", "unit_source_value",
+            "visit_occurrence_id",
+        ]].rename(columns={
+            "observation_concept_id":"measurement_concept_id",
+            "observation_source_value":"measurement_source_value",
+            "observation_date":"measurement_date",
+            "observation_type_concept_id":"measurement_type_concept_id",
+        })
+        pack_measurements["unit_concept_id"] = 0
+        pack_measurements["unit_source_value"] = "pack-years (years multiplied by packs/day)"
+        pack_measurements.to_csv("processed_source/environmental_questionnaire--measurement.csv", index=False)
+        output_data = output_data[output_data["observation_concept_id"] != 903650]
 
         # Save output
         output_path = "processed_source/environmental_questionnaire--observation.csv"
