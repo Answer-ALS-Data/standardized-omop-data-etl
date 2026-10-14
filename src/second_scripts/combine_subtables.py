@@ -156,7 +156,8 @@ def combine_tables():
             redundant_concepts.to_csv(redundant_file, index=False)
             print(f"Saved redundant concepts for {table_type} to {redundant_file}")
 
-    # Process tables without priorities
+    # Preserve all sources for tables without a clinical priority policy.
+    unprioritized = {}
     for file in Path("processed_source").glob("*.csv"):
         if "--" not in file.name:  # Skip files that are already combined_omop
             continue
@@ -167,9 +168,12 @@ def combine_tables():
         if table_type not in PRIORITIES:  # Only process tables without priorities
             print(f"Processing {table_type}...")
             df = pd.read_csv(file)
-            output_file = combined_omop_dir / f"{table_type}.csv"
-            df.to_csv(output_file, index=False)
-            print(f"Saved {table_type} to {output_file}")
+            unprioritized.setdefault(table_type, []).append(df)
+
+    for table_type, frames in unprioritized.items():
+        output_file = combined_omop_dir / f"{table_type}.csv"
+        pd.concat(frames, ignore_index=True).to_csv(output_file, index=False)
+        print(f"Saved {table_type} to {output_file}")
 
 
 if __name__ == "__main__":

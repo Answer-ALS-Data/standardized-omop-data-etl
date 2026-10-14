@@ -165,6 +165,12 @@ def main():
             "visit_occurrence_id",
         ]
         output_data = pd.DataFrame(columns=output_columns)
+        device_columns = [
+            "person_id", "device_concept_id", "device_source_value",
+            "device_exposure_start_date", "device_exposure_end_date",
+            "device_type_concept_id", "visit_occurrence_id",
+        ]
+        device_rows = []
 
         # Set index date for relative day calculations
         index_date = datetime(2016, 1, 1)
@@ -332,6 +338,23 @@ def main():
                     "visit_occurrence_id": f"{person_id}_0",  # Default to 0 since we don't have visit date
                 }
 
+                domain = mapping.get("domainId", "Drug")
+                domain = "Drug" if pd.isna(domain) or not str(domain).strip() else str(domain).strip()
+                if domain == "Device":
+                    # Preserve medication-log evidence where Device has no route field.
+                    device_rows.append({
+                        "person_id": person_id,
+                        "device_concept_id": mapping["conceptId"],
+                        "device_source_value": drug_source_value + " | " + route_source_value,
+                        "device_exposure_start_date": start_date_str,
+                        "device_exposure_end_date": end_date_str,
+                        "device_type_concept_id": 32851,
+                        "visit_occurrence_id": f"{person_id}_0",
+                    })
+                    continue
+                if domain != "Drug":
+                    raise ValueError(f"Unsupported medication mapping domain: {domain}")
+
                 output_data = pd.concat(
                     [output_data, pd.DataFrame([new_row])], ignore_index=True
                 )
@@ -342,6 +365,11 @@ def main():
         # Save output
         output_data.to_csv(
             Path("processed_source") / "answer_als_medications_log--drug_exposure.csv",
+            index=False,
+        )
+
+        pd.DataFrame(device_rows, columns=device_columns).to_csv(
+            Path("processed_source") / "answer_als_medications_log--device_exposure.csv",
             index=False,
         )
 
