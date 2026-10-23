@@ -89,7 +89,16 @@ def main():
     if missing:
         parser.error('Missing original-format clinical tables: ' + ', '.join(missing))
     sources = [(p, Path(p.name)) for p in clinical_files]
-    sources += [(auxiliary / n, Path(n)) for n in AUXILIARY]
+    auxiliary_names = list(AUXILIARY)
+    mortality_code = subprocess.check_output(
+        ['git', '-C', str(REPO), 'show', commit + ':src/table_scripts/mortality--death.py'], text=True)
+    if 'mortality-cause-mapping.csv' in mortality_code:
+        auxiliary_names.remove('usagi/Mortality OMOP Mapping.csv')
+        auxiliary_names.extend(['usagi/mortality-cause-mapping.csv',
+                                'other/mortality-date-overrides.json'])
+        if 'mortality.csv' not in names:
+            parser.error('Missing clinical mortality.csv')
+    sources += [(auxiliary / n, Path(n)) for n in auxiliary_names]
     if args.identity_policy is not None:
         policy = args.identity_policy.resolve()
         if output.is_relative_to(policy) or policy.is_relative_to(output):

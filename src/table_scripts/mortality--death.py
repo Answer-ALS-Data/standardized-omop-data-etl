@@ -1,122 +1,113 @@
-import pandas as pd
-import logging
-from helpers import relative_day_to_date, check_missing_concept_ids
-import os
+"""Map causes independently of people; retain explicit date exceptions and audit."""
+import csv
+import json
+from collections import defaultdict
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from datetime import datetime
 
-# Get the script's directory
-script_dir = Path(__file__).parent
-project_root = script_dir.parent
 
-# Create necessary directories
-source_tables_dir = project_root / "source_tables"
+def read(path):
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
 
-# Set up logging
-logging.basicConfig(
-    filename="logs/mortality--death.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+
+def key(row):
+    return (" ".join(row["diedcaus"].lower().split()),
+            "".join(row["icd10cm"].upper().split()))
+
+
+def offset(value):
+    try:
+        d = Decimal(value)
+        return int(d) if d.is_finite() and d == d.to_integral_value() else None
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def load_lookup(path):
+    lookup = {}
+    for row in read(path):
+        k = (row["diedcaus_key"], row["icd10cm_key"])
+        if k != key(dict(diedcaus=k[0], icd10cm=k[1])):
+            raise ValueError("Noncanonical mortality lookup key")
+        if k in lookup:
+            raise ValueError("Duplicate mortality lookup key")
+        if row["mapping_status"] not in {"RETAINED", "APPROVED"}:
+            raise ValueError("Unresolved mortality mapping")
+        cid = row["cause_concept_id"]
+        if not cid.isdigit():
+            raise ValueError("Invalid mortality target")
+        lookup[k] = int(cid)
+    return lookup
 
 
 def main():
-    try:
-        # Read source data - the mapping file already contains the concept mappings
-        source_data = pd.read_csv("source_tables/usagi/Mortality OMOP Mapping.csv")
-
-        # Initialize output dataframe
-        output_columns = [
-            "person_id",
-            "death_date",
-            "death_type_concept_id",
-            "cause_concept_id",
-            "cause_source_value",
-        ]
-        output_data = pd.DataFrame(columns=output_columns)
-
-        # Set index date
-        index_date = datetime.strptime("2016-01-01", "%Y-%m-%d")
-
-        # Process each row
-        for _, row in source_data.iterrows():
-            # Get person_id (from Participant_ID)
-            person_id = row["Participant_ID"]
-
-            # Get death_date using relative_day_to_date, default to 1900-01-01 if empty
-            if pd.isna(row["dieddt"]):
-                death_date = "1900-01-01"
-                dieddt_value = ""
-            else:
-                death_date = relative_day_to_date(row["dieddt"], index_date).strftime(
-                    "%Y-%m-%d"
-                )
-                dieddt_value = str(int(row["dieddt"]))
-
-            # Get cause information from source data
-            diedcaus_value = (
-                str(row["diedcaus"]).strip() if pd.notna(row["diedcaus"]) else ""
-            )
-            icd10cm_value = (
-                str(row["icd10cm"]).strip() if pd.notna(row["icd10cm"]) else ""
-            )
-
-            # Create cause_source_value using new format
-            source_parts = []
-            
-            # Add dieddt if it has a value
-            if dieddt_value:
-                source_parts.append(f"mortality+dieddt (days since intake): {dieddt_value}")
-            
-            # Add diedcaus if it has a value
-            if diedcaus_value:
-                source_parts.append(f"mortality+diedcaus (death cause): {diedcaus_value}")
-            
-            # Add icd10cm if it has a value
-            if icd10cm_value:
-                source_parts.append(f"mortality+icd10cm (ICD-10-CM code): {icd10cm_value}")
-            
-            # If no values, indicate presence of death record
-            if not source_parts:
-                source_parts.append("mortality+dieddt (days since intake)")
-            
-            cause_source_value = " | ".join(source_parts)
-
-            # Get concept details from the mapping file
-            cause_concept_id = (
-                int(row["cause_concept_id"]) if pd.notna(row["cause_concept_id"]) else 0
-            )
-
-            # Add row to output
-            output_data = pd.concat(
-                [
-                    output_data,
-                    pd.DataFrame(
-                        [
-                            {
-                                "person_id": person_id,
-                                "death_date": death_date,
-                                "death_type_concept_id": 32851,  # Healthcare professional filled survey
-                                "cause_concept_id": cause_concept_id,
-                                "cause_source_value": cause_source_value,
-                            }
-                        ]
-                    ),
-                ],
-                ignore_index=True,
-            )
-
-        # Check for missing concept IDs
-        check_missing_concept_ids(output_data, "cause_concept_id")
-
-        # Save output
-        output_data.to_csv("processed_source/mortality--death.csv", index=False)
-
-        logging.info("Successfully completed ETL process")
-
-    except Exception as e:
-        logging.error(f"Error in ETL process: {str(e)}")
-        raise
+    source = Path("source_tables")
+    lookup = load_lookup(source / "usagi/mortality-cause-mapping.csv")
+    overrides = json.loads((source / "other/mortality-date-overrides.json").read_text())
+    groups = defaultdict(list)
+    for i, row in enumerate(read(source / "mortality.csv"), 1):
+        groups[row["Participant_ID"]].append((i, row))
+    completed = defaultdict(list)
+    for name, date, flag in [("alsfrs_r.csv", "alsfrsdt", "alsfdn"),
+                             ("vital_signs.csv", "vsdt", "vsdn")]:
+        for row in read(source / name):
+            dt = offset(row[date])
+            if offset(row[flag]) == 1 and dt is not None:
+                completed[row["Participant_ID"]].append(dt)
+    output, audit, errors = [], [], []
+    for pid, entries in groups.items():
+        row = entries[0][1]
+        record = dict(Participant_ID=pid, source_rows=[i for i, _ in entries],
+                      source_records=[r for _, r in entries])
+        signatures = {(offset(r["dieddt"]), key(r)) for _, r in entries}
+        if len(signatures) != 1 or not pid.strip():
+            errors.append(dict(record, reason="Conflicting repeated death or missing identity"))
+            continue
+        k = key(row)
+        if k not in lookup:
+            errors.append(dict(record, reason="Unmapped cause/code pair"))
+            continue
+        dt = offset(row["dieddt"])
+        if pid in overrides:
+            override = overrides[pid]
+            if dt != override["expected_raw_offset"]:
+                errors.append(dict(record, reason="Stale death-date override"))
+                continue
+            dt = override["retained_offset"]
+            record["date_override"] = override
+            if any(v > dt for v in completed[pid]):
+                record["warning"] = "Inherited curated date precedes collected assessment; raw date does not necessarily do so. Source clarification required."
+        reason = None
+        if dt is None:
+            reason = "Missing or nonintegral death date"
+        elif dt < 0:
+            reason = "Death precedes screening"
+        elif any(v > offset(row["dieddt"]) for v in completed[pid]):
+            reason = "Collected assessment after death"
+        try:
+            date = (datetime(2016, 1, 1) + timedelta(days=dt)).strftime("%Y-%m-%d") if reason is None else None
+        except (OverflowError, ValueError):
+            reason = "Unrepresentable death date"
+        if reason:
+            audit.append(dict(record, disposition="HOLD", reason=reason))
+            continue
+        parts = [f"mortality+dieddt (days since intake): {dt}"]
+        for field, label in [("diedcaus", "death cause"), ("icd10cm", "ICD-10-CM code")]:
+            if row[field].strip():
+                parts.append(f"mortality+{field} ({label}): {row[field].strip()}")
+        output.append(dict(person_id=pid, death_date=date, death_type_concept_id=32851,
+                           cause_concept_id=lookup[k], cause_source_value=" | ".join(parts)))
+        audit.append(dict(record, disposition="EMIT", cause_key=k, cause_concept_id=lookup[k], death_date=date))
+    Path("logs").mkdir(exist_ok=True)
+    Path("logs/mortality-reconciliation.json").write_text(json.dumps(dict(records=audit, errors=errors), indent=2)+"\n")
+    if errors:
+        raise ValueError("Mortality reconciliation failed; see logs/mortality-reconciliation.json")
+    with Path("processed_source/mortality--death.csv").open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["person_id", "death_date", "death_type_concept_id", "cause_concept_id", "cause_source_value"])
+        w.writeheader()
+        w.writerows(output)
 
 
 if __name__ == "__main__":
