@@ -157,11 +157,8 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
 
             # Get the corresponding norm variable
             norm_var = mapping["norm_var"]
-            if norm_var not in row or pd.isna(row[norm_var]):
-                logging.debug(
-                    f"Skipping {source_var} for person_id {person_id} due to missing norm: {norm_var}"
-                )
-                continue
+            norm_raw = row.get(norm_var)
+            norm_missing = pd.isna(norm_raw)
 
             # Build value_source_value with new format
             value_source_parts = []
@@ -181,16 +178,16 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
                 2: "Abnormal and Not Clinically Significant", 
                 3: "Abnormal Clinically Significant",
             }
-            norm_interpretation = norm_status.get(row[norm_var], 'Unknown')
+            norm_interpretation = norm_status.get(norm_raw, 'Unknown')
             # Convert to int to ensure integer display
-            norm_value = int(row[norm_var]) if pd.notna(row[norm_var]) else row[norm_var]
+            norm_value = 'missing' if norm_missing else int(norm_raw)
             value_source_parts.append(f"auxiliary_chemistry_labs+{norm_var} (norm status): {norm_value} ({norm_interpretation})")
             
             # Join the parts with ' | ' separator
             value_source_value = " | ".join(value_source_parts)
 
             # Determine value_as_concept_id based on norm status
-            value_as_concept_id = 4069590 if row[norm_var] == 1 else 4135493
+            value_as_concept_id = 0 if norm_missing else (4069590 if norm_raw == 1 else 4135493)
 
             # Special handling for creatine kinase units and concept IDs
             if source_var == "acckrslt":
