@@ -372,6 +372,12 @@ def vital_signs_to_measurement(source_df, index_date_str):
         # Process weight
         if not pd.isna(row["weight"]):
             weight_value = safe_convert_to_float(row["weight"], "weight", person_id)
+            # A value without its source unit is not safe to convert. Other
+            # measurements on this row and other visits remain eligible.
+            unit = row.get("weightu")
+            if weight_value is not None and (pd.isna(unit) or not str(unit).strip()):
+                logging.warning(f"Skipping weight for person_id {person_id} at day {row['vsdt']}: missing source unit; raw value={row['weight']}")
+                weight_value = None
             
             if weight_value is not None:
                 original_unit = "lb" if row["weightu"] == 1 else "kg"
@@ -404,6 +410,12 @@ def vital_signs_to_measurement(source_df, index_date_str):
         # Process height
         if not pd.isna(row["height"]):
             height_value = safe_convert_to_float(row["height"], "height", person_id)
+            # A value without its source unit is not safe to convert. Other
+            # measurements on this row and other visits remain eligible.
+            unit = row.get("heightu")
+            if height_value is not None and (pd.isna(unit) or not str(unit).strip()):
+                logging.warning(f"Skipping height for person_id {person_id} at day {row['vsdt']}: missing source unit; raw value={row['height']}")
+                height_value = None
             
             if height_value is not None:
                 original_unit = "in" if row["heightu"] == 1 else "cm"
