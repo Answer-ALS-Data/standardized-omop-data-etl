@@ -119,7 +119,8 @@ second_scripts = [
     "person_id_map.py",
     "create_observation_periods.py",
     "transform_ids.py",
-    "add_missing_columns.py"
+    "add_missing_columns.py",
+    "exclude_missing_birth_year.py"
 ]
 
 def transform_table_ids(table_name, input_dir="../combined_omop", output_dir="../combined_omop"):
