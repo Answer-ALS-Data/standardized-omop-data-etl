@@ -42,6 +42,26 @@ def get_concept_info(df, concept_id_col):
     return pd.DataFrame()
 
 
+def apply_missing_observation_dates(frame):
+    """Apply the agreed unknown-date sentinel without changing reported dates."""
+    frame = frame.copy()
+    if frame.empty:
+        return frame
+    if "observation_date" not in frame:
+        frame["observation_date"] = None
+    if "observation_source_value" not in frame:
+        frame["observation_source_value"] = ""
+    missing = frame["observation_date"].isna() | frame["observation_date"].astype(str).str.strip().eq("")
+    frame.loc[missing, "observation_date"] = "1900-01-01"
+    if missing.any():
+        source = frame.loc[missing, "observation_source_value"].fillna("").astype(str)
+        frame.loc[missing, "observation_source_value"] = source.map(
+            lambda value: (value + " | " if value else "")
+            + "+date_status: missing; 1900-01-01 is an unknown-date placeholder"
+        )
+    return frame
+
+
 def combine_tables():
     # Create output directories
     combined_omop_dir = Path("combined_omop")
@@ -125,6 +145,9 @@ def combine_tables():
 
             # Combine with existing data
             combined_omop_df = pd.concat([combined_omop_df, df], ignore_index=True)
+
+        if table_type == "observation":
+            combined_omop_df = apply_missing_observation_dates(combined_omop_df)
 
         # Save combined_omop table
         output_file = combined_omop_dir / f"{table_type}.csv"
