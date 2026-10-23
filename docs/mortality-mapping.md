@@ -1,13 +1,17 @@
 # Mortality cause lookup
 
-The mortality script reads clinical `source_tables/mortality.csv` for participant, date and source cause evidence. It reads `source_tables/usagi/mortality-cause-mapping.csv` for cause targets. The older participant-level `Mortality OMOP Mapping.csv` is no longer read or used as fallback.
+Clinical `source_tables/mortality.csv` supplies participant, date and cause evidence. `source_tables/usagi/mortality-cause-mapping.csv` supplies only cause concepts. The historical participant-level Mortality OMOP Mapping.csv is inactive and is never a fallback. No date-override file is read.
 
-Required lookup columns: diedcaus_key, icd10cm_key, cause_concept_id, mapping_status. Labels and decision notes may accompany them. Normalize cause by lowercase/trim/whitespace collapse and ICD by uppercase/removing whitespace. Do not discard punctuation or equate unknown with blank. Keys must be unique and normalized; status must be RETAINED or APPROVED; target must be a nonnegative integer. Unmatched pairs, duplicate keys and unresolved rows fail the run with audit evidence.
+Required lookup columns: diedcaus_key, icd10cm_key, cause_concept_id, mapping_status. Normalize cause by lowercase/trim/whitespace collapse and ICD by uppercase/removing whitespace. Preserve punctuation and blank versus explicit unknown. Duplicate/noncanonical lookup keys, unresolved statuses or unmatched source pairs fail explicitly rather than selecting an arbitrary concept.
 
-Death dates come exclusively from clinical `mortality.csv` dieddt plus the established conversion formula. No participant-specific date overrides are read. The four historical differences in the former mapping file have no documented correction rationale and are not carried forward.
+## Legacy mortality behavior retained
 
-Missing/nonintegral dates, dates before screening, unrepresentable dates and raw deaths preceding collected ALSFRS/vital-sign assessments are held in logs/mortality-reconciliation.json. No 1900 death date is invented. Check those holds before release. Same-person records with equal normalized cause/date produce one death and retain all source rows in the audit; conflicting repeats fail. Both assessment tables are required. The established identity stage continues to handle the previously approved missing-demographics exception.
+Emit one record per clinical mortality source row, in source order. Do not deduplicate by participant or reject conflicting repeated source rows. Duplicate lookup keys remain an error: this is distinct from repeated clinical records.
 
-The synthetic anchor remains 2016-01-01; the clinical dictionary describes death offsets relative to screening. The inherited death_type_concept_id 32851 and cause_source_value construction remain unchanged. Their provenance adequacy and CDM field length remain separate release limitations. This change does not certify the dataset for release.
+Death dates use the original pandas missing-value recognition and the 2016-01-01 anchor plus the relative days. Missing dates emit 1900-01-01. Negative offsets and death dates before assessments are not excluded or replaced. Nonmissing values that cannot be converted still fail rather than being silently repaired. Cause source text retains the original date/cause/code construction; if date is absent its date component is omitted. Death type remains 32851.
 
-Temporal screening compares collected assessments to the raw death date. Contradictory records are held with evidence rather than repaired by guessing another date.
+logs/mortality-reconciliation.json retains each original row, chosen mapping, converted date and report-only warnings for missing dates, repeated participants and chronology contradictions. Optional ALSFRS/vital-sign inputs support those reports; they are not required for conversion. These findings do not create holds or alter the output.
+
+The separately approved identity stage is unchanged: the previously reviewed missing-demographics exclusion applies only to its named participant. Other missing PERSON links still block remapping. Restoring sentinel behavior exposes another such September record; no new exclusion is authorized by this mapping change.
+
+This scope does not establish a source deduplication policy or certify death provenance, field lengths or downstream observation-period semantics. The original behavior and source limitations are retained at the user's direction.

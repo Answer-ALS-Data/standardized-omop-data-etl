@@ -31,17 +31,17 @@ class MortalityTest(unittest.TestCase):
         write(self.root/'source_tables/mortality.csv',['Participant_ID','dieddt','diedcaus','icd10cm'],[dict(Participant_ID=p,dieddt=d,diedcaus=c,icd10cm=i) for p,d,c,i in rows])
     def test_normalization_and_duplicate_provenance(self):
         self.source([('P','10',' ALS ','G 12.21'),('P','10','ALS','g12.21')]);m.main()
-        output=m.read(self.root/'processed_source/mortality--death.csv');self.assertEqual(len(output),1);self.assertEqual(output[0]['death_date'],'2016-01-11')
-        audit=json.loads(Path('logs/mortality-reconciliation.json').read_text());self.assertEqual(audit['records'][0]['source_rows'],[1,2])
+        output=m.read(self.root/'processed_source/mortality--death.csv');self.assertEqual(len(output),2);self.assertEqual(output[0]['death_date'],'2016-01-11')
+        audit=json.loads(Path('logs/mortality-reconciliation.json').read_text());self.assertEqual([r['source_rows'] for r in audit['records']],[[1],[2]])
     def test_unknown_and_duplicate_lookup_fail(self):
         self.source([('P','10','other','')])
         with self.assertRaises(ValueError):m.main()
         self.map*=2;self.save_map()
         with self.assertRaises(ValueError):m.main()
-    def test_missing_negative_and_postdeath_hold(self):
+    def test_missing_negative_and_postdeath_report_only(self):
         self.source([('A','','ALS','G12.21'),('B','-1','ALS','G12.21'),('C','10','ALS','G12.21')])
         write(Path('source_tables/alsfrs_r.csv'),['Participant_ID','alsfrsdt','alsfdn'],[dict(Participant_ID='C',alsfrsdt='11',alsfdn='1')]);m.main()
-        self.assertEqual(m.read(Path('processed_source/mortality--death.csv')),[])
+        self.assertEqual([r['death_date'] for r in m.read(Path('processed_source/mortality--death.csv'))],['1900-01-01','2015-12-31','2016-01-11'])
         self.assertEqual(len(json.loads(Path('logs/mortality-reconciliation.json').read_text())['records']),3)
     def test_source_date_is_authoritative(self):
         self.source([('P','10','ALS','G12.21')])
@@ -53,6 +53,7 @@ class MortalityTest(unittest.TestCase):
         self.assertNotIn('date_override',json.loads(Path('logs/mortality-reconciliation.json').read_text())['records'][0])
         self.source([('P','11','ALS','G12.21')]);m.main()
         self.assertEqual(m.read(Path('processed_source/mortality--death.csv'))[0]['death_date'],'2016-01-12')
-    def test_conflicting_duplicate_fails(self):
+    def test_conflicting_duplicate_preserved(self):
         self.source([('P','10','ALS','G12.21'),('P','11','ALS','G12.21')])
-        with self.assertRaises(ValueError):m.main()
+        m.main()
+        self.assertEqual([r['death_date'] for r in m.read(Path('processed_source/mortality--death.csv'))],['2016-01-11','2016-01-12'])

@@ -1,6 +1,7 @@
-"""Map causes independently of people; retain explicit date exceptions and audit."""
+"""Map causes independently; preserve legacy dates and one output per source row."""
 import csv
 import json
+import pandas as pd
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -45,51 +46,53 @@ def load_lookup(path):
 def main():
     source = Path("source_tables")
     lookup = load_lookup(source / "usagi/mortality-cause-mapping.csv")
+    source_rows = read(source / "mortality.csv")
+    dates = pd.read_csv(source / "mortality.csv")["dieddt"]
     groups = defaultdict(list)
-    for i, row in enumerate(read(source / "mortality.csv"), 1):
+    for i, row in enumerate(source_rows, 1):
         groups[row["Participant_ID"]].append((i, row))
     completed = defaultdict(list)
     for name, date, flag in [("alsfrs_r.csv", "alsfrsdt", "alsfdn"),
                              ("vital_signs.csv", "vsdt", "vsdn")]:
+        if not (source / name).exists():
+            continue
         for row in read(source / name):
             dt = offset(row[date])
             if offset(row[flag]) == 1 and dt is not None:
                 completed[row["Participant_ID"]].append(dt)
     output, audit, errors = [], [], []
-    for pid, entries in groups.items():
-        row = entries[0][1]
-        record = dict(Participant_ID=pid, source_rows=[i for i, _ in entries],
-                      source_records=[r for _, r in entries])
-        signatures = {(offset(r["dieddt"]), key(r)) for _, r in entries}
-        if len(signatures) != 1 or not pid.strip():
-            errors.append(dict(record, reason="Conflicting repeated death or missing identity"))
-            continue
+    for i, row in enumerate(source_rows, 1):
+        pid = row["Participant_ID"]
+        entries = groups[pid]
+        record = dict(Participant_ID=pid, source_rows=[i], source_records=[row])
+        warnings = []
+        if len(entries) > 1:
+            warnings.append("Repeated participant mortality rows preserved without deduplication")
         k = key(row)
         if k not in lookup:
             errors.append(dict(record, reason="Unmapped cause/code pair"))
             continue
-        dt = offset(row["dieddt"])
-        reason = None
-        if dt is None:
-            reason = "Missing or nonintegral death date"
-        elif dt < 0:
-            reason = "Death precedes screening"
-        elif any(v > dt for v in completed[pid]):
-            reason = "Collected assessment after death"
-        try:
-            date = (datetime(2016, 1, 1) + timedelta(days=dt)).strftime("%Y-%m-%d") if reason is None else None
-        except (OverflowError, ValueError):
-            reason = "Unrepresentable death date"
-        if reason:
-            audit.append(dict(record, disposition="HOLD", reason=reason))
-            continue
-        parts = [f"mortality+dieddt (days since intake): {dt}"]
+        # Match the original pandas NA recognition, conversion and sentinel policy.
+        value = dates.iloc[i - 1]
+        if pd.isna(value):
+            date, dt = "1900-01-01", None
+            warnings.append("Missing death date represented by legacy 1900-01-01 sentinel")
+        else:
+            date = (datetime(2016, 1, 1) + timedelta(days=float(value))).strftime("%Y-%m-%d")
+            dt = int(value)
+            if float(value) < 0:
+                warnings.append("Death precedes screening")
+            if any(v > float(value) for v in completed[pid]):
+                warnings.append("Collected assessment after death")
+        parts = [f"mortality+dieddt (days since intake): {dt}"] if dt is not None else []
         for field, label in [("diedcaus", "death cause"), ("icd10cm", "ICD-10-CM code")]:
             if row[field].strip():
                 parts.append(f"mortality+{field} ({label}): {row[field].strip()}")
+        if not parts:
+            parts.append("mortality+dieddt (days since intake)")
         output.append(dict(person_id=pid, death_date=date, death_type_concept_id=32851,
                            cause_concept_id=lookup[k], cause_source_value=" | ".join(parts)))
-        audit.append(dict(record, disposition="EMIT", cause_key=k, cause_concept_id=lookup[k], death_date=date))
+        audit.append(dict(record, disposition="EMIT", cause_key=k, cause_concept_id=lookup[k], death_date=date, warnings=warnings))
     Path("logs").mkdir(exist_ok=True)
     Path("logs/mortality-reconciliation.json").write_text(json.dumps(dict(records=audit, errors=errors), indent=2)+"\n")
     if errors:
