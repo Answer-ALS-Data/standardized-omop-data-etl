@@ -45,7 +45,6 @@ def load_lookup(path):
 def main():
     source = Path("source_tables")
     lookup = load_lookup(source / "usagi/mortality-cause-mapping.csv")
-    overrides = json.loads((source / "other/mortality-date-overrides.json").read_text())
     groups = defaultdict(list)
     for i, row in enumerate(read(source / "mortality.csv"), 1):
         groups[row["Participant_ID"]].append((i, row))
@@ -70,21 +69,12 @@ def main():
             errors.append(dict(record, reason="Unmapped cause/code pair"))
             continue
         dt = offset(row["dieddt"])
-        if pid in overrides:
-            override = overrides[pid]
-            if dt != override["expected_raw_offset"]:
-                errors.append(dict(record, reason="Stale death-date override"))
-                continue
-            dt = override["retained_offset"]
-            record["date_override"] = override
-            if any(v > dt for v in completed[pid]):
-                record["warning"] = "Inherited curated date precedes collected assessment; raw date does not necessarily do so. Source clarification required."
         reason = None
         if dt is None:
             reason = "Missing or nonintegral death date"
         elif dt < 0:
             reason = "Death precedes screening"
-        elif any(v > offset(row["dieddt"]) for v in completed[pid]):
+        elif any(v > dt for v in completed[pid]):
             reason = "Collected assessment after death"
         try:
             date = (datetime(2016, 1, 1) + timedelta(days=dt)).strftime("%Y-%m-%d") if reason is None else None

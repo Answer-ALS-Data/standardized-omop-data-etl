@@ -22,7 +22,6 @@ class MortalityTest(unittest.TestCase):
         for d in ['source_tables/usagi','source_tables/other','processed_source']:(self.root/d).mkdir(parents=True)
         self.map=[dict(diedcaus_key='als',icd10cm_key='G12.21',cause_concept_id='373182',mapping_status='APPROVED')]
         self.save_map()
-        (self.root/'source_tables/other/mortality-date-overrides.json').write_text('{}')
         write(self.root/'source_tables/alsfrs_r.csv',['Participant_ID','alsfrsdt','alsfdn'],[])
         write(self.root/'source_tables/vital_signs.csv',['Participant_ID','vsdt','vsdn'],[])
     def tearDown(self):
@@ -44,13 +43,16 @@ class MortalityTest(unittest.TestCase):
         write(Path('source_tables/alsfrs_r.csv'),['Participant_ID','alsfrsdt','alsfdn'],[dict(Participant_ID='C',alsfrsdt='11',alsfdn='1')]);m.main()
         self.assertEqual(m.read(Path('processed_source/mortality--death.csv')),[])
         self.assertEqual(len(json.loads(Path('logs/mortality-reconciliation.json').read_text())['records']),3)
-    def test_override_guard(self):
-        self.source([('P','10','ALS','G12.21')]);p=Path('source_tables/other/mortality-date-overrides.json');p.write_text(json.dumps({'P':dict(expected_raw_offset=10,retained_offset=9)}))
-        write(Path('source_tables/alsfrs_r.csv'),['Participant_ID','alsfrsdt','alsfdn'],[dict(Participant_ID='P',alsfrsdt='10',alsfdn='1')]);m.main()
-        self.assertIn('warning',json.loads(Path('logs/mortality-reconciliation.json').read_text())['records'][0])
-        self.assertEqual(m.read(Path('processed_source/mortality--death.csv'))[0]['death_date'],'2016-01-10')
-        self.source([('P','11','ALS','G12.21')])
-        with self.assertRaises(ValueError):m.main()
+    def test_source_date_is_authoritative(self):
+        self.source([('P','10','ALS','G12.21')])
+        # Historical compatibility files must have no effect, even if present.
+        Path('source_tables/other/mortality-date-overrides.json').write_text(json.dumps({'P':dict(expected_raw_offset=10,retained_offset=9)}))
+        write(Path('source_tables/alsfrs_r.csv'),['Participant_ID','alsfrsdt','alsfdn'],[dict(Participant_ID='P',alsfrsdt='10',alsfdn='1')])
+        m.main()
+        self.assertEqual(m.read(Path('processed_source/mortality--death.csv'))[0]['death_date'],'2016-01-11')
+        self.assertNotIn('date_override',json.loads(Path('logs/mortality-reconciliation.json').read_text())['records'][0])
+        self.source([('P','11','ALS','G12.21')]);m.main()
+        self.assertEqual(m.read(Path('processed_source/mortality--death.csv'))[0]['death_date'],'2016-01-12')
     def test_conflicting_duplicate_fails(self):
         self.source([('P','10','ALS','G12.21'),('P','11','ALS','G12.21')])
         with self.assertRaises(ValueError):m.main()

@@ -94,8 +94,9 @@ def main():
         ['git', '-C', str(REPO), 'show', commit + ':src/table_scripts/mortality--death.py'], text=True)
     if 'mortality-cause-mapping.csv' in mortality_code:
         auxiliary_names.remove('usagi/Mortality OMOP Mapping.csv')
-        auxiliary_names.extend(['usagi/mortality-cause-mapping.csv',
-                                'other/mortality-date-overrides.json'])
+        auxiliary_names.append('usagi/mortality-cause-mapping.csv')
+        if 'mortality-date-overrides.json' in mortality_code:
+            auxiliary_names.append('other/mortality-date-overrides.json')
         if 'mortality.csv' not in names:
             parser.error('Missing clinical mortality.csv')
     sources += [(auxiliary / n, Path(n)) for n in auxiliary_names]
