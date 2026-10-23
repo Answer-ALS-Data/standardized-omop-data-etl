@@ -249,7 +249,13 @@ def get_relative_concept(famrel, famher):
         "cousin": (713135, "Family history with explicit context pertaining to cousin"),
     }
 
-    # Special handling for grandparents with default to paternal if heredity is blank
+    # No standard Observation target distinguishes grandmother/grandfather without
+    # lineage in the pinned vocabulary. Keep the relationship in source text and
+    # use the broader family-history concept rather than inventing paternal lineage.
+    if famrel in ("grandmother", "grandfather") and not famher:
+        return (4210989, "Family history with explicit context"), "BLANK", "WIDER"
+
+    # Preserve explicitly supplied grandparent lineage.
     if famrel == "grandmother":
         # For source value tracking
         heredity_source = (
