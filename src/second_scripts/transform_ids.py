@@ -10,15 +10,6 @@ TABLES = ('condition_occurrence', 'death', 'device_exposure', 'drug_exposure',
 transform_id = final_id
 
 
-def legacy_visit_id(value):
-    # Composite visit tokens have a separate unresolved design (plan Step 8).
-    # Preserve historical nonblank handling here; this is not visit validation.
-    if not str(value).strip():
-        return ''
-    digits = ''.join(filter(str.isdigit, str(value)))[-7:]
-    return '11' + digits.zfill(7)
-
-
 def prepare_table(table_name, input_dir):
     path = Path(input_dir)/(table_name+'.csv')
     if not path.exists():
@@ -31,7 +22,10 @@ def prepare_table(table_name, input_dir):
         for key in keys:
             row[key] = final_id(row[key])
         if 'visit_occurrence_id' in columns:
-            row['visit_occurrence_id'] = legacy_visit_id(row['visit_occurrence_id'])
+            # This export has no visit tables. Raw visit tokens remain in staged data.
+            row['visit_occurrence_id'] = ''
+        if 'visit_detail_id' in columns:
+            row['visit_detail_id'] = ''
     return columns, rows
 
 

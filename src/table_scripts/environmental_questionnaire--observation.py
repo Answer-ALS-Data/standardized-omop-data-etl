@@ -222,7 +222,7 @@ def milirb_to_concept_id(value):
     """Convert military service response to concept ID"""
     if value == 1:
         return 45877994  # Yes
-    elif value == 0:
+    elif value == 2:
         return 45878245  # No
     return None
 
@@ -231,7 +231,7 @@ def smokerb_to_concept_id(value):
     """Convert smoking history response to concept ID"""
     if value == 1:
         return 45877994  # Yes
-    elif value == 0:
+    elif value == 2:
         return 45878245  # No
     return None
 
