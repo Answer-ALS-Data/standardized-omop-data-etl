@@ -208,13 +208,18 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
                 unit_concept_id = mapping["unit_concept_id"]
                 concept_id = mapping["concept_id"]
 
+            # Standard phosphorus units are mg/dL; keep original values in provenance.
+            numeric_value = row[source_var]
+            if source_var == "acphrslt" and re.sub(r"\s+", "", str(row[unit_var])).lower() == "mg/l":
+                numeric_value = float(numeric_value) / 10
+
             transformed_row = {
                 "person_id": person_id,
                 "measurement_concept_id": concept_id,
                 "measurement_source_value": f"auxiliary_chemistry_labs+{source_var} ({mapping['source_meaning']})",
                 "measurement_date": visit_date_str,
                 "measurement_type_concept_id": 32851,  # Healthcare professional filled survey
-                "value_as_number": row[source_var],
+                "value_as_number": numeric_value,
                 "value_as_concept_id": value_as_concept_id,
                 "value_source_value": value_source_value,
                 "unit_concept_id": unit_concept_id,
