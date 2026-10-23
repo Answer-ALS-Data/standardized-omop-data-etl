@@ -117,19 +117,19 @@ def vital_signs_to_measurement(source_df, index_date_str):
         "bpsys": {
             "concept_id": 4152194,
             "unit_concept_id": 8876,  # UCUM millimeter mercury column
-            "value_as_concept_ids": {
-                1: 4060833,  # Standing
-                2: 4060834,  # Sitting
-                3: 4060832,  # Supine
+            "position_concept_ids": {
+                1: 3035856,  # Standing
+                2: 3018586,  # Sitting
+                3: 3009395,  # Supine
             },
         },
         "bpdias": {
             "concept_id": 4154790,
             "unit_concept_id": 8876,  # UCUM millimeter mercury column
-            "value_as_concept_ids": {
-                1: 4060833,  # Standing
-                2: 4060834,  # Sitting
-                3: 4060832,  # Supine
+            "position_concept_ids": {
+                1: 3019962,  # Standing
+                2: 3034703,  # Sitting
+                3: 3013940,  # Supine
             },
         },
         "hr": {"concept_id": 3027018, "unit_concept_id": 8483},  # UCUM counts/min; measurement identifies heart rate
@@ -268,7 +268,7 @@ def vital_signs_to_measurement(source_df, index_date_str):
                         else "Supine" if bppos_value == 3
                         else None
                     )
-                    value_as_concept_id = vital_sign_mappings["bpsys"]["value_as_concept_ids"].get(bppos_value)
+                    # Position describes the measurement, not a categorical result.
                 
                 # Create value_source_value with position interpretation to the left of the value
                 if position_interpretation:
@@ -278,7 +278,9 @@ def vital_signs_to_measurement(source_df, index_date_str):
                 
                 transformed_row = {
                     "person_id": person_id,
-                    "measurement_concept_id": vital_sign_mappings["bpsys"]["concept_id"],
+                    "measurement_concept_id": vital_sign_mappings["bpsys"]["position_concept_ids"].get(
+                        bppos_value, vital_sign_mappings["bpsys"]["concept_id"]
+                    ),
                     "measurement_source_value": "vital_signs+bpsys (Systolic Blood Pressure)",
                     "measurement_date": visit_date_str,
                     "measurement_type_concept_id": 32851,
@@ -308,7 +310,7 @@ def vital_signs_to_measurement(source_df, index_date_str):
                         else "Supine" if bppos_value == 3
                         else None
                     )
-                    value_as_concept_id = vital_sign_mappings["bpdias"]["value_as_concept_ids"].get(bppos_value)
+                    # Position describes the measurement, not a categorical result.
                 
                 # Create value_source_value with position interpretation to the left of the value
                 if position_interpretation:
@@ -318,7 +320,9 @@ def vital_signs_to_measurement(source_df, index_date_str):
                 
                 transformed_row = {
                     "person_id": person_id,
-                    "measurement_concept_id": vital_sign_mappings["bpdias"]["concept_id"],
+                    "measurement_concept_id": vital_sign_mappings["bpdias"]["position_concept_ids"].get(
+                        bppos_value, vital_sign_mappings["bpdias"]["concept_id"]
+                    ),
                     "measurement_source_value": "vital_signs+bpdias (Diastolic Blood Pressure)",
                     "measurement_date": visit_date_str,
                     "measurement_type_concept_id": 32851,
