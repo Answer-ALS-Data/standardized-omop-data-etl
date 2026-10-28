@@ -38,67 +38,56 @@ def als_gene_mutations_to_measurement(source_df, index_date_str):
     gene_mappings = {
         "ang": {
             "concept_id": 35961859,
-            "concept_name": "ANG (angiogenin) gene variant measurement",
             "source_meaning": "ANG Mutation",
             "nd_var": "angnd",
         },
         "c9orf72": {
             "concept_id": 35954626,
-            "concept_name": "C9orf72 (C9orf72-SMCR8 complex subunit) gene variant measurement",
             "source_meaning": "C9ORF72 Mutation",
             "nd_var": "c9orfnd",
         },
         "fus": {
             "concept_id": 19643404,
-            "concept_name": "FUS gene rearrangement measurement",
             "source_meaning": "FUS Mutation",
             "nd_var": "fusnd",
         },
         "mutot": {
             "concept_id": 0,
-            "concept_name": "No Matching Concept",
             "source_meaning": "Other Mutation: positive",
             "nd_var": None,  # No proper nd variable for mutot
         },
         "progran": {
             "concept_id": 35951629,
-            "concept_name": "GRN (granulin precursor) gene variant measurement",
             "source_meaning": "PROGRANULIN Mutation",
             "nd_var": "prgrnnd",
         },
         "setx": {
             "concept_id": 35958907,
-            "concept_name": "SETX (senataxin) gene variant measurement",
             "source_meaning": "SETX Mutation",
             "nd_var": "setxnd",
         },
         "sod1": {
             "concept_id": 35948140,
-            "concept_name": "SOD1 (superoxide dismutase 1) gene variant measurement",
             "source_meaning": "SOD1 Mutation",
             "nd_var": "sod1nd",
         },
         "tau": {
             "concept_id": 35946715,
-            "concept_name": "MAPT (microtubule associated protein tau) gene variant measurement",
             "source_meaning": "TAU Mutation",
             "nd_var": "taund",
         },
         "tdp43": {
             "concept_id": 35964178,
-            "concept_name": "TARDBP (TAR DNA binding protein) gene variant measurement",
             "source_meaning": "TDP-43 Mutation",
             "nd_var": "tdp43nd",
         },
         "vapb": {
             "concept_id": 35956055,
-            "concept_name": "VAPB (VAMP associated protein B and C) gene variant measurement",
             "source_meaning": "VAPB Mutation",
             "nd_var": "vapbnd",
         },
         "vcp": {
             "concept_id": 35958302,
-            "concept_name": "VCP (valosin containing protein) gene variant measurement",
             "source_meaning": "VCP Mutation",
             "nd_var": "vcpnd",
         },

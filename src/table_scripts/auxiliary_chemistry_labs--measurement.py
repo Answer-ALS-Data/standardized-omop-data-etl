@@ -70,38 +70,30 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
     lab_mappings = {
         "acuarslt": {
             "concept_id": 4156643,
-            "concept_name": "Blood urate measurement",
             "source_meaning": "Uric Acid",
             "unit_var": "acuaunit",  # Fixed unit variable name
             "unit_concept_id": 8840,
-            "unit_concept_name": "milligram per deciliter",
             "norm_var": "uanorm",
         },
         "accrrslt": {
             "concept_id": 3016723,
-            "concept_name": "Creatinine [Mass/volume] in Serum or Plasma",
             "source_meaning": "Creatinine",
             "unit_var": "accreuni",  # Fixed unit variable name
             "unit_concept_id": 8840,
-            "unit_concept_name": "milligram per deciliter",
             "norm_var": "crenorm",
         },
         "acphrslt": {
             "concept_id": 4194292,
-            "concept_name": "Blood inorganic phosphate measurement",
             "source_meaning": "Phosphorous",
             "unit_var": "acphouni",  # Fixed unit variable name
             "unit_concept_id": 8840,
-            "unit_concept_name": "milligram per deciliter",
             "norm_var": "phonorm",
         },
         "acckrslt": {
             "concept_id": None,  # Will be determined based on unit
-            "concept_name": "Creatine kinase measurement",
             "source_meaning": "Creatine Kinase (CK)",
             "unit_var": "acckunit",  # Fixed unit variable name
             "unit_concept_id": None,  # Will be determined based on unit
-            "unit_concept_name": None,
             "norm_var": "cknorm",
         },
     }
@@ -193,12 +185,10 @@ def auxiliary_chemistry_labs_to_measurement(source_df, index_date_str):
             if source_var == "acckrslt":
                 if is_units_per_liter(row[unit_var]):
                     unit_concept_id = 8645
-                    unit_concept_name = "unit per liter"
                     concept_id = 3007220  # Creatine kinase [Enzymatic activity/volume] in Serum or Plasma
                     logging.info(f"Detected units/L format for creatine kinase: '{row[unit_var]}' -> using enzymatic activity concept")
                 else:
                     unit_concept_id = 8840
-                    unit_concept_name = "milligram per deciliter"
                     concept_id = 3030170  # Creatine kinase [Mass/volume] in Blood
                     logging.info(f"Using mass/volume concept for creatine kinase with unit: '{row[unit_var]}'")
             else:

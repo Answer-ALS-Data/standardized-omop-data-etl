@@ -10,15 +10,15 @@ renamed or edited.
 python src/prepare_inputs.py \
   --source /path/to/clinical-export \
   --crosswalk /path/to/pinned-subjects.csv \
-  --medical-history-units years \
+  --medical-history-units relative-days \
   --output /path/to/private-prepared-inputs
 ```
 
-Use `--medical-history-units relative-days` for a source defined that way. The
-argument records the supplied unit convention; it does **not** convert dates or
-establish their anchor/imputation semantics. It does not alter the legacy ETL's
-year interpretation. A relative-day source requires the planned date correction
-before its medical-history output can be considered valid.
+The September V1.1 source uses `relative-days`, which is also the current ETL
+default. This preparation argument records the supplied units; it does **not**
+convert dates. For older year-based inputs, select `years` here and supply the
+resulting preparation.json through the runner's `--medical-history-profile`
+option. See [medical-history dates](medical-history-dates.md).
 
 The crosswalk must contain `SubjectUID` and `Participant_ID`. It is optional when
 every clinical file already supplies Participant_ID; when supplied, it also checks

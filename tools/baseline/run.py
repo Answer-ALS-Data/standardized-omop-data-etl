@@ -36,7 +36,7 @@ REQUIRED_CLINICAL = (
 )
 EXPECTED_FINAL = (
     'person.csv', 'condition_occurrence.csv', 'observation.csv', 'measurement.csv',
-    'drug_exposure.csv', 'procedure_occurrence.csv', 'device_exposure.csv',
+    'drug_exposure.csv', 'procedure_occurrence.csv',
     'death.csv', 'observation_period.csv', 'concept.csv', 'care_site.csv',
 )
 

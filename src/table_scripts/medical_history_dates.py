@@ -1,4 +1,4 @@
-"""Explicit medical-history date profiles, sentinel policy and row-level audit."""
+"""V1.1 relative-day dates, optional legacy profile, and row-level audit."""
 import csv
 import hashlib
 import json
@@ -35,9 +35,15 @@ def convert_date(value, units, legacy_value=None):
 
 class DateContext:
     def __init__(self, source='source_tables/medical_history.csv',
-                 profile='source_tables/medical_history_date_profile.json'):
-        self.source = Path(source); self.profile = Path(profile)
-        self.units = json.loads(self.profile.read_text()).get('medical_history_units')
+                 profile=None):
+        self.source = Path(source)
+        # V1.1 inputs use days since intake. Profiles are optional overrides for
+        # legacy regression runs, not a required release input.
+        default_profile = Path('source_tables/medical_history_date_profile.json')
+        self.profile = Path(profile) if profile is not None else (
+            default_profile if default_profile.exists() else None)
+        self.units = (json.loads(self.profile.read_text()).get('medical_history_units')
+                      if self.profile is not None else 'relative-days')
         if self.units not in ('years', 'relative-days'):
             raise ValueError('Missing or invalid medical_history_units in explicit profile')
         with self.source.open(encoding='utf-8-sig', newline='') as stream:
@@ -65,7 +71,8 @@ class DateContext:
         report = {'medical_history_units':self.units, 'synthetic_intake_anchor':str(ANCHOR),
                   'missing_invalid_sentinel':str(SENTINEL),
                   'source_sha256':hashlib.sha256(self.source.read_bytes()).hexdigest(),
-                  'profile_sha256':hashlib.sha256(self.profile.read_bytes()).hexdigest(),
+                  'profile_sha256':(hashlib.sha256(self.profile.read_bytes()).hexdigest()
+                                    if self.profile is not None else None),
                   'input_status_counts':dict(Counter(r['status'] for r in self.records)),
                   'emitted_status_counts':{status:sum(r['emitted_rows'] for r in self.records if r['status']==status)
                                            for status in ('valid','missing','invalid')},

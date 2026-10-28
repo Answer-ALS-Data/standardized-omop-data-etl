@@ -44,9 +44,10 @@ class MedicationDomainsTest(unittest.TestCase):
             write(root/'processed_source/medical_history--device_exposure.csv',[history])
             for _ in range(2):
                 subprocess.run([sys.executable,str(ROOT/'src/second_scripts/combine_subtables.py')],cwd=root,check=True,capture_output=True)
-                combined=read(root/'combined_omop/device_exposure.csv')
-                self.assertEqual(len(combined),5)
-                self.assertEqual(sum(d['device_source_value']=='history evidence' for d in combined),1)
+                self.assertFalse((root/'combined_omop/device_exposure.csv').exists())
+                combined_drugs=read(root/'combined_omop/drug_exposure.csv')
+                self.assertEqual(len(combined_drugs),1)
+                self.assertEqual(combined_drugs[0]['drug_concept_id'],'0')
 
 if __name__=='__main__':
     unittest.main()

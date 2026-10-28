@@ -39,110 +39,85 @@ subject_group_interpretation = {
     "17": "Non-ALS MND",
 }
 
-# Mapping of source variables to their corresponding concept IDs and names
+# Mapping of source variables to concept IDs and source descriptions
 SITE_MAPPINGS = {
     "hxgen": {
         "concept_id": 4082829,
-        "concept_name": "Nonspecific site",
         "source_value": "Generalized",
     },
     "hxblb": {
         "concept_id": "bulbar_dys",
-        "concept_name": "Bulbar dysfunction",
         "source_value": "Bulbar",
     },
     "hxblbsch": {
         "concept_id": 4047485,
-        "concept_name": "Speech dysfunction",
         "source_value": "Speech",
     },
     "hxblbsw": {
         "concept_id": 4125274,
-        "concept_name": "Difficulty swallowing",
         "source_value": "Swallowing",
     },
-    "hxax": {"concept_id": 4086896, "concept_name": "Axial", "source_value": "Axial"},
+    "hxax": {"concept_id": 4086896, "source_value": "Axial"},
     "hxaxnk": {
         "concept_id": 4260843,
-        "concept_name": "Neck structure",
         "source_value": "Neck",
     },
     "hxaxtr": {
         "concept_id": 4042529,
-        "concept_name": "Trunk structure",
         "source_value": "Trunk",
     },
     "hxaxtrrp": {
         "concept_id": 4156081,
-        "concept_name": "Respiratory tract structure",
         "source_value": "Respiratory",
     },
     "hxli": {
         "concept_id": 4282006,
-        "concept_name": "Limb structure",
         "source_value": "Limb",
     },
     "hxliu": {
         "concept_id": 4200396,
-        "concept_name": "Upper limb structure",
         "source_value": "Upper",
     },
     "hxliul": {
         "concept_id": 4215746,
-        "concept_name": "Structure of left upper limb",
         "source_value": "Left Upper",
     },
     "hxliur": {
         "concept_id": 4286959,
-        "concept_name": "Structure of right upper limb",
         "source_value": "Right Upper",
     },
     "hxliuhnd": {
         "concept_id": [4309650, 4302584],
-        "concept_name": ["Structure of left hand", "Structure of right hand"],
         "source_value": ["Left Hand/fingers", "Right Hand/fingers"],
     },
     "hxliuarm": {
         "concept_id": [4215746, 4286959],
-        "concept_name": [
-            "Structure of left upper limb",
-            "Structure of right upper limb",
-        ],
         "source_value": ["Left Arm", "Right Arm"],
     },
     "hxlil": {
         "concept_id": 4267861,
-        "concept_name": "Lower limb structure",
         "source_value": "Lower",
     },
     "hxlill": {
         "concept_id": 4136825,
-        "concept_name": "Structure of left lower limb",
         "source_value": "Left Lower",
     },
     "hxlilr": {
         "concept_id": 4268743,
-        "concept_name": "Structure of right lower limb",
         "source_value": "Right Lower",
     },
     "hxlilft": {
         "concept_id": [4320144, 4298982],
-        "concept_name": ["Structure of left foot", "Structure of right foot"],
         "source_value": ["Left Ankle/foot/toes", "Right Ankle/foot/toes"],
     },
     "hxlilleg": {
         "concept_id": [4136825, 4268743],
-        "concept_name": [
-            "Structure of left lower limb",
-            "Structure of right lower limb",
-        ],
         "source_value": ["Left Leg", "Right Leg"],
     },
 }
 
-# Update SITE_MAPPINGS['hxblb'] to use concept_id and concept_name from concept.csv
+# Use the local bulbar-dysfunction concept ID
 SITE_MAPPINGS["hxblb"]["concept_id"] = "2000002017"
-SITE_MAPPINGS["hxblb"]["concept_name"] = concept_id_to_name["2000002017"]
 
 
 def check_limb_combination(row, side_var, part_vars):

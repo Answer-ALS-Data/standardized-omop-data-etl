@@ -11,7 +11,7 @@ class FamilyLineage(unittest.TestCase):
   for rel in [9,10,'grandmother','grandfather']:
    for lineage in [None,float('nan'),'']:
     concept,source,equiv=self.mod.get_relative_concept(rel,lineage)
-    self.assertEqual(concept[0],4210989);self.assertEqual(source,'BLANK');self.assertEqual(equiv,'WIDER')
+    self.assertEqual(concept,4210989);self.assertEqual(source,'BLANK');self.assertEqual(equiv,'WIDER')
  def test_explicit_lineage_and_other_relationships_unchanged(self):
   for rel,lineage,target in [(9,1,4052802),(9,2,4050942),(10,1,4052801),(10,2,4052800),(1,None,4051255)]:
-   self.assertEqual(self.mod.get_relative_concept(rel,lineage)[0][0],target)
+   self.assertEqual(self.mod.get_relative_concept(rel,lineage)[0],target)

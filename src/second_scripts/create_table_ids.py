@@ -6,7 +6,6 @@ import logging
 tables = [
     "condition_occurrence",
     "death",
-    "device_exposure",
     "drug_exposure",
     "measurement",
     "observation",

@@ -32,7 +32,7 @@ class NeurologMapping(unittest.TestCase):
     def test_trimmed_match_keeps_equivalence_and_raw_provenance(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            result = self.run_fixture(root, [dict(sourceName=' Progressive Spinal Muscular Atrophy', conceptId='376679', conceptName='Progressive muscular atrophy', equivalence='EQUIVALENT')])
+            result = self.run_fixture(root, [dict(sourceName=' Progressive Spinal Muscular Atrophy', conceptId='376679', conceptName='Synthetic neurolog target', equivalence='EQUIVALENT')])
             self.assertEqual(result.returncode, 0, result.stderr)
             with (root / 'processed_source/neurolog--condition_occurrence.csv').open() as f:
                 rows = list(csv.DictReader(f))

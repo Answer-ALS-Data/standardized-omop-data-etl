@@ -103,7 +103,7 @@ table_scripts = [
     "environmental_questionnaire--observation.py",
     "family_history_log--observation.py",
     "medical_history--condition_occurrence.py",
-    "medical_history--device_exposure.py",
+    # Device extraction is deferred to V2.
     "medical_history--drug_exposure.py",
     "medical_history--procedure_occurrence.py",
     "medical_history--observation.py",

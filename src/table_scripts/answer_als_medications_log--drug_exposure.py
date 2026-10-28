@@ -39,23 +39,23 @@ def build_source_value(table_name, var_name, value=None, var_interpretation=None
 def answer_als_medications_log_route_to_drug_exposure_route_concept_id(route_value):
     """Convert route values to route concept IDs"""
     route_mapping = {
-        1: (4132161, "Oral"),
-        2: (4171047, "Intravenous"),
-        3: (4142048, "Subcutaneous"),
-        4: (4263689, "Topical"),
-        5: (40486069, "Respiratory tract"),
-        6: (4262099, "Transdermal"),
-        7: (4290759, "Rectal"),
-        8: (4302612, "Intramuscular"),
-        9: (4292110, "Sublingual"),
-        10: (4177987, "Percutaneous"),
-        99: (0, "No Matching Concept"),
+        1: 4132161,
+        2: 4171047,
+        3: 4142048,
+        4: 4263689,
+        5: 40486069,
+        6: 4262099,
+        7: 4290759,
+        8: 4302612,
+        9: 4292110,
+        10: 4177987,
+        99: 0,
     }
     try:
         route_value = int(route_value)
-        return route_mapping.get(route_value, (0, "No Matching Concept"))
+        return route_mapping.get(route_value, 0)
     except (ValueError, TypeError):
-        return (0, "No Matching Concept")
+        return 0
 
 
 def answer_als_medications_log_route_to_text(route_value):
@@ -202,7 +202,7 @@ def main():
             # Process each matching concept (could be multiple)
             for _, mapping in mappings.iterrows():
                 # Get route information
-                route_concept_id, _ = (
+                route_concept_id = (
                     answer_als_medications_log_route_to_drug_exposure_route_concept_id(
                         row["medrte"]
                     )

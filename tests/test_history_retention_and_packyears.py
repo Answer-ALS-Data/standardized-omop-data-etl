@@ -30,7 +30,7 @@ class HistoryRetentionAndPackYears(unittest.TestCase):
             write(root/'source_tables/medical_history.csv',rows)
             write(root/'source_tables/usagi/medical_history_conditions_v2.csv',[
                 dict(sourceName='asbestos',conceptId=44783302,domainId='Observation',conceptName='Exposure',equivalence='EQUAL'),
-                dict(sourceName='known condition',conceptId=24609,domainId='Condition',conceptName='Hypoglycemia',equivalence='EQUAL'),
+                dict(sourceName='known condition',conceptId=24609,domainId='Condition',conceptName='Synthetic condition target',equivalence='EQUAL'),
                 dict(sourceName='unresolved condition',conceptId=0,domainId='Condition',conceptName='Unknown',equivalence='UNMATCHED'),
                 dict(sourceName='unresolved observation',conceptId=0,domainId='Observation',conceptName='Unknown',equivalence='UNMATCHED')])
             (root/'source_tables/medical_history_date_profile.json').write_text('{"medical_history_units":"relative-days"}')

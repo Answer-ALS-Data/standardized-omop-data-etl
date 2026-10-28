@@ -13,6 +13,6 @@ Supply both through the isolated runner's `--identity-policy DIRECTORY` option; 
 
 `transform_ids.py` accepts positive integer IDs and integral decimal representations such as `7.0`. It formats the existing `11` prefix plus seven-digit namespace exactly once. Missing, malformed, fractional, negative, zero and oversized numeric values raise instead of becoming plausible IDs or losing digits. All available tables are checked before transformed outputs are written.
 
-The historical composite visit-token formatting remains separate and unvalidated pending the visit design decision. This repair does not establish valid VISIT_OCCURRENCE links or fix date, vocabulary, observation-period or other cohort semantics. A successful build is not overall CDM validation.
+V1.1 exports no visit tables, so final `visit_occurrence_id` and `visit_detail_id` values are blank. Raw visit tokens remain in staged data. After ID conversion, `exclude_missing_birth_year.py` removes people without a birth year and their linked records, with a private audit; the event-date sentinel does not supply a birth year. A successful build is not overall CDM validation.
 
 Run tests with `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python3 -m unittest discover -s tests`. Identity cases include source-string preservation, numeric forms, rejection boundaries, orphan failure without mutation, registry collision/reservation, row-order independence, subsequent-registry reuse, exact exclusion accounting and stale-policy detection.

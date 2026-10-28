@@ -191,6 +191,10 @@ def combine_tables():
         source, table_type = file.name.split("--")
         table_type = table_type.replace(".csv", "")
 
+        # Device contributions from any source are deferred to the V2 release.
+        if table_type == "device_exposure":
+            continue
+
         if table_type not in PRIORITIES:  # Only process tables without priorities
             print(f"Processing {table_type}...")
             df = pd.read_csv(file)

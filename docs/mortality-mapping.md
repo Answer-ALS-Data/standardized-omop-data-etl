@@ -12,6 +12,6 @@ Death dates use the original pandas missing-value recognition and the 2016-01-01
 
 logs/mortality-reconciliation.json retains each original row, chosen mapping, converted date and report-only warnings for missing dates, repeated participants and chronology contradictions. Optional ALSFRS/vital-sign inputs support those reports; they are not required for conversion. These findings do not create holds or alter the output.
 
-The separately approved identity stage is unchanged: the previously reviewed missing-demographics exclusion applies only to its named participant. Other missing PERSON links still block remapping. Restoring sentinel behavior exposes another such September record; no new exclusion is authorized by this mapping change.
+The identity stage applies the reviewed, count-checked missing-demographics exclusions from the supplied source-specific policy. The September policy includes both approved exclusions; unlisted missing PERSON links still block remapping. The separate missing-birth-year rule removes ineligible people and their linked records after ID conversion. Neither rule changes the mortality cause lookup or substitutes a death date.
 
 This scope does not establish a source deduplication policy or certify death provenance, field lengths or downstream observation-period semantics. The original behavior and source limitations are retained at the user's direction.

@@ -1,19 +1,12 @@
 # Answer ALS Standardized OMOP Dataset
 
-Release Version 1.0
-
-Development workflow: [input preparation](docs/input-preparation.md) supports
-both clinical filename conventions; [baseline tooling](tools/baseline/README.md)
-records isolated runs and regression comparisons. [Identity handling](docs/identity-handling.md)
-requires a pinned person-ID registry and reviewed exclusion policy; [medical-history dates](docs/medical-history-dates.md)
-require an explicit year or relative-day profile. These additions do not establish
-a validated V1.1 release; the release description below remains historical V1.0.
+Release Version 1.1
 
 # Summary
 
 The Answer ALS Standardized OMOP Dataset provides a harmonized representation of the clinical data collected from more than one thousand participants in the [Answer ALS study](https://www.nature.com/articles/s41593-021-01006-0). The program generated clinical surveys, medical histories, ALSFRS R scores, environmental and family history questionnaires, and self reported genetic information. 
 
-This release maps the clinical data to the OMOP Common Data Model Version 5.4 to support interoperability with other ALS datasets and to enable use of OHDSI tools for cohort creation and analysis. The ETL process followed Answer ALS mapping specifications and OHDSI guidance, with all mappings reviewed by data scientists and clinicians. ALS specific elements not yet present in OMOP vocabulary were implemented as temporary custom concepts, and detailed provenance information is retained through OMOP source value fields.
+This release maps the clinical data to the OMOP Common Data Model Version 5.4 to support interoperability with other ALS datasets and to enable use of OHDSI tools for cohort creation and analysis. The ETL process followed Answer ALS mapping specifications and OHDSI guidance, with the original mappings reviewed by data scientists and clinicians and subsequent V1.1 changes reviewed during release development. ALS specific elements not yet present in OMOP vocabulary were implemented as temporary custom concepts, and detailed provenance information is retained through OMOP source value fields.
 
 *Note: In addition to the clinical dataset described here, Answer ALS provides extensive participant multiomic data and biosamples (e.g., iPSC lines, PBMCs, plasma, serum, and CSF), accessible via the [Neuromine portal](https://dataportal.answerals.org/).*
 
@@ -44,9 +37,9 @@ The Answer ALS Standardized OMOP Dataset includes 1,040 participants with demogr
 
 # Source Data Overview
 
-The source Answer ALS clinical dataset includes a set of structured study forms and logs that capture demographics, disease assessments, medical history, genetic survey responses, laboratory values, and vital signs. These source tables form the basis for the OMOP mappings in release version 1.0.
+The source Answer ALS clinical dataset includes a set of structured study forms and logs that capture demographics, disease assessments, medical history, genetic survey responses, laboratory values, and vital signs. These source tables form the basis for the OMOP mappings in release version 1.1.
 
-## Tables used in Version 1.0
+## Tables used in Version 1.1
 
 ### Demographics and Subject Classification
 
@@ -64,7 +57,7 @@ The source Answer ALS clinical dataset includes a set of structured study forms 
 
 ### Medical History and Medications
 
-* Medical\_History: Prior diagnoses and procedures reported by year.  
+* Medical\_History: Prior diagnoses, procedures and medications, with dates supplied as days relative to intake in the updated pull.
 * ANSWER\_ALS\_Medications\_Log: Medications and supplements with dose, route, and frequency.
 
 ### Laboratory Measurements and Vital Signs
@@ -81,19 +74,23 @@ The source Answer ALS clinical dataset includes a set of structured study forms 
 
 ## Mapping Specifications
 
-The [AALS OMOP Mapping Specifications (MVP)](https://docs.google.com/spreadsheets/d/16pI6KIVo-zGIo8Sdoqygbev7C_600JDpmEdok1BRBnY/edit?gid=1327264875#gid=1327264875) workbook was used to plan the mappings for all Version 1.0 tables. Each sheet in the workbook corresponds to an OMOP target table and lists the associated source tables, variable level mappings, target concept IDs, and any special considerations. These specifications guided the development of the ETL scripts hosted in the [Answer ALS standardized OMOP GitHub repository](https://github.com/Answer-ALS-Data/standardized-omop-data-etl).
+The [AALS OMOP Mapping Specifications (MVP)](https://docs.google.com/spreadsheets/d/16pI6KIVo-zGIo8Sdoqygbev7C_600JDpmEdok1BRBnY/edit?gid=1327264875#gid=1327264875) workbook was used to plan the mappings for all Version 1.0 tables. Each sheet in the workbook corresponds to an OMOP target table and lists the associated source tables, variable level mappings, target concept IDs, and any special considerations. Detailed variable mappings and rationale belong in this workbook. Reconciliation of the workbook with the V1.1 implementation is pending. These specifications guided the development of the ETL scripts hosted in the [Answer ALS standardized OMOP GitHub repository](https://github.com/Answer-ALS-Data/standardized-omop-data-etl).
 
 ## Vocabulary and Custom Concepts
 
-Standard OMOP vocabularies were used whenever possible. Several ALS-specific elements—primarily diagnostic questions, clinical/EMG indicators from AALSDXFX, site-of-onset and bulbar dysfunction fields from AALSHXFX, and symptom-onset concepts for ALS and non-ALS motor neuron diseases—were not available in OMOP. Many are represented in NINDS CDEs and were submitted for future OMOP inclusion. Until official concepts are released, these items are captured using temporary custom concepts in the included concepts table to ensure faithful representation of the source data and compatibility with OMOP structure.
+V1.1 pins Athena vocabulary release **v5.0 29-AUG-26**. Standard OMOP vocabularies were used whenever possible. Several ALS-specific elements—primarily diagnostic questions, clinical/EMG indicators from AALSDXFX, site-of-onset and bulbar dysfunction fields from AALSHXFX, and symptom-onset concepts for ALS and non-ALS motor neuron diseases—were not available in OMOP. Many are represented in NINDS CDEs and were submitted for future OMOP inclusion. Until official concepts are released, these items are captured using temporary custom concepts in the included concepts table to ensure faithful representation of the source data and compatibility with OMOP structure.
+
+The output `concept.csv` contains 34 local definitions, not the complete standard vocabulary. A database load also requires the pinned standard vocabulary tables and supporting metadata for `ALS_Custom`; these local concepts are not designated standard concepts.
 
 ## Time and Date Handling
 
-Relative day values in the source data were converted to calendar dates using an index date of 01 Jan 2016\. Source entries that provided only a year were mapped to 01 Jan of that year. Missing dates were assigned 01 Jan 1900\. Observation periods were defined using each participant’s first and last available record.
+Relative day values are converted using the synthetic intake anchor 01 Jan 2016. In the updated medical-history pull, `medhxyr` contains days since intake, including valid negative offsets; the ETL treats these values as relative days by default and retains an optional year-based override for historical inputs. Missing event dates use 01 Jan 1900 as an unknown-date placeholder; medical-history offsets that cannot be represented as dates use the same fallback. This rule does not supply a birth year: participants without a birth year and their linked records are excluded (one participant in this pull).
+
+Observation periods retain the existing first/last available event-date calculation, excluding the 1900 sentinel. They may include historical events and should not be interpreted as continuous study follow-up or healthcare observation; existing fallback periods are synthetic.
 
 ## Mapping Review and Tools
 
-All mappings were created by data scientists and reviewed by a clinician. Larger lists of source terms were mapped using the OHDSI tool Usagi, with additional clinician review to confirm equivalence and resolve ambiguous terms.
+The original mappings were created by data scientists and reviewed by a clinician. V1.1 retains those decisions where applicable and incorporates reviewed vocabulary replacements and corrections; mapping equivalence and retained approximations should be consulted alongside the mapped concepts. Larger lists of source terms were mapped using the OHDSI tool Usagi, with additional clinician review to confirm equivalence and resolve ambiguous terms.
 
 ## Source Value Formatting
 
@@ -105,25 +102,26 @@ This provides a clear record of where each element originated.
 
 ## Missing Values Interpretation
 
-In alignment with OMOP conventions, blank fields in the source data were not mapped. Explicit negative values such as “No” or “Negative” were mapped when provided. Empty fields were treated as missing information rather than an indication of absence.
+Blank source responses are not interpreted as negative results. A missing qualifier does not necessarily discard an otherwise usable result; for example, numeric laboratory results with missing normality are retained with unknown normality. Explicit negative values such as “No” or “Negative” were mapped when provided. Empty fields were treated as missing information rather than an indication of absence.
 
 # OMOP Table Summary
 
-The table below summarizes which source tables contributed to each OMOP table in Version 1.0, along with the number of records and mapped concept identifiers.
+The table below summarizes which source tables contributed to each OMOP table in V1.1, along with the number of records and distinct primary concept identifiers. Concept counts include concept 0 where present; DEATH uses cause_concept_id. One retained repeated mortality record accounts for the difference between DEATH records and people.
 
 | OMOP Table | Source Tables Pulled From | Unique Person IDs | Record Count | Unique Concept IDs |
 | :---- | :---- | :---- | :---- | :---- |
 | person | Demographics; subjects | 1040 | 1040 | N/A |
-| death | Mortality | 400 | 400 | 17 |
-| condition\_occurrence | AALSHXFX; Medical\_History; NEUROLOG | 1006 | 4797 | 884 |
-| observation | AALSDXFX; AALSHXFX; ALSFRS\_R; Environmental\_Questionnaire; Family\_History\_Log | 1039 | 76590 | 61 |
-| measurement | ALS\_Gene\_Mutations; Auxiliary\_Chemistry\_Labs; Vital\_Signs | 1016 | 21083 | 27 |
-| drug\_exposure | ANSWER\_ALS\_Medications\_Log; Medical\_History | 908 | 7797 | 675 |
-| procedure\_occurrence | Medical\_History | 327 | 647 | 244 |
+| death | Mortality | 552 | 553 | 17 |
+| condition\_occurrence | AALSHXFX; Medical\_History; NEUROLOG | 1006 | 4806 | 867 |
+| observation | AALSDXFX; AALSHXFX; subjects; ALSFRS\_R; Environmental\_Questionnaire; Family\_History\_Log; Medical\_History | 1039 | 78064 | 66 |
+| measurement | ALS\_Gene\_Mutations; Auxiliary\_Chemistry\_Labs; Vital\_Signs | 1018 | 21129 | 34 |
+| drug\_exposure | ANSWER\_ALS\_Medications\_Log; Medical\_History | 908 | 7795 | 666 |
+| procedure\_occurrence | Medical\_History | 329 | 648 | 233 |
+| observation\_period | Derived from available event dates | 1040 | 1040 | N/A |
 
 # OMOP Table Level Notes
 
-The following sections summarize how each source table contributed to the corresponding OMOP tables in Version 1.0. Notes highlight key mapping decisions, date handling and custom concepts.
+The following sections summarize how each source table contributed to the corresponding OMOP tables in V1.1. Notes highlight key mapping decisions, date handling and custom concepts.
 
 ## person
 
@@ -145,8 +143,8 @@ Mortality
 
 ### Key points
 
-* Date of death and cause of death were mapped.  
-* When both general and specific causes were present, the more specific cause was used.  
+* Death dates use source relative-day values and the existing missing-date fallback; the cause mapping does not override dates.
+* Causes use a participant-independent lookup of the source cause text and ICD-10-CM combination, preserving reviewed decisions and favoring the more immediate cause when available.
 * Conditions related to death were mapped using Usagi with clinician review.
 
 ## condition\_occurrence
@@ -157,7 +155,7 @@ AALSHXFX, Medical\_History, NEUROLOG
 
 ### Key points
 
-* Medical History provided only the year. Dates were mapped using 01 Jan of that year, or 01 Jan 1900 if missing.  
+* Medical History dates use days relative to intake for V1.1 (see Time and Date Handling).
 * NEUROLOG terms were mapped using Usagi with clinician review. Free text “other” entries were preserved only in source fields.  
 * ALS onset and Non-ALS MND onset were mapped using symptom onset dates from AALSHXFX.  
 * Custom concepts were created for ALS onset and Non-ALS MND onset, due to missing vocabulary coverage.
@@ -166,7 +164,7 @@ AALSHXFX, Medical\_History, NEUROLOG
 
 ### Source tables
 
-AALSDXFX, AALSHXFX, ALSFRS\_R, Environmental\_Questionnaire, Family\_History\_Log
+AALSDXFX, AALSHXFX, subjects, ALSFRS\_R, Environmental\_Questionnaire, Family\_History\_Log, Medical\_History
 
 ### Key points
 
@@ -191,7 +189,8 @@ ALS\_Gene\_Mutations, Auxiliary\_Chemistry\_Labs, Vital\_Signs
   * Temperatures converted to Celsius  
   * Lengths converted to centimeters  
   * Weight converted to kilograms  
-* Measurement technique was recorded when corresponding OMOP concepts existed.
+* Measurement technique was recorded when corresponding OMOP concepts existed. Blood-pressure position now selects a sitting, standing or supine systolic/diastolic concept; the result remains numeric. Missing position retains a generic blood-pressure concept.
+* Weight and height measurements without source units are omitted; units are not inferred from other visits.
 
 ## drug\_exposure
 
@@ -202,7 +201,7 @@ ANSWER\_ALS\_Medications\_Log, Medical\_History
 ### Key points
 
 * Drug ingredients were mapped using Usagi with clinician review. Mapping equivalence is noted in source values.  
-* Dose information was not mapped due to inconsistent formatting and frequent missing entries.  
+* Dose and frequency are retained in source values; recognized routes are mapped to route concepts.
 * Missing or unrecognized medication values were mapped to No Matching Concept.  
 * “Other” medication entries were not mapped in Version 1.0.
 
@@ -215,12 +214,12 @@ Medical\_History
 ### Key points
 
 * Procedures reported in Medical History were mapped using Usagi with clinician review.  
-* Dates were handled using the same year based rules as condition\_occurrence.  
+* Dates use the same relative-day rules as condition\_occurrence.
 * Free text “other” items were preserved only in the source fields.
 
 # Unmapped Source Tables
 
-The following Answer ALS source tables were not included in the Version 1.0 OMOP release. These tables were excluded due to limited vocabulary coverage, insufficient structure for standardized mapping, or because they are planned for inclusion in a future release.
+The following Answer ALS source tables remain outside the V1.1 OMOP release. These tables were excluded due to limited vocabulary coverage, insufficient structure for standardized mapping, or because they are planned for inclusion in a future release.
 
 ## Strength and Functional Measurements
 
@@ -231,6 +230,8 @@ The following Answer ALS source tables were not included in the Version 1.0 OMOP
 * Ashworth\_Spasticity\_Scale: Measures muscle tone and spasticity.
 
 ## Procedures, Devices, and Assisted Ventilation
+
+* Device exposures: Deferred to Version 2.0.
 
 * Feeding\_Tube\_Placement: Gastrostomy procedure dates and clinical rationale.  
 * Tracheostomy: Procedure dates, hospitalization details, and indications.  
@@ -257,7 +258,7 @@ The following Answer ALS source tables were not included in the Version 1.0 OMOP
 
 # Known Limitations
 
-The Version 1.0 release represents a minimum-viable OMOP conversion and includes several limitations that users should consider:
+The V1.1 release retains the original scope of the OMOP conversion and includes several limitations that users should consider:
 
 ## Date Completeness
 
@@ -273,7 +274,7 @@ Free text entries under “Other” fields across several forms could not be rel
 
 ## Medication Details
 
-Dose, frequency, and route information were not mapped due to inconsistent formatting and frequent missingness. Only ingredient-level drug exposure is included in Version 1.0.
+Dose and frequency are retained in source values rather than standardized dosing fields. Recognized routes are mapped to route concepts, with the original route retained in source values. Medication mappings primarily represent ingredients; retained approximations and their equivalence are documented in source values and mapping reviews.
 
 ## Relationship Vocabulary Gaps
 
@@ -281,13 +282,21 @@ OMOP lacks concepts for some family relationships (e.g., half-siblings). These w
 
 ## Partial Table Coverage
 
-Several structured forms were excluded from Version 1.0 because of limited vocabulary support or incomplete harmonization rules. These will be revisited for Version 2.0.
+Several structured forms remain excluded from V1.1 because of limited vocabulary support or incomplete harmonization rules. These will be revisited for Version 2.0.
+
+## Source and Export Limitations
+
+Source inconsistencies are generally preserved rather than repaired by the ETL, including reversed medication intervals and events after recorded death. These are reported in validation. Detailed provenance can exceed standard OMOP string lengths; integer fields may serialize with decimal notation, and DEATH includes an extra `death_id`. Export-format remediation is deferred to V2. The CSV outputs are not yet a validated strict-schema database load.
 
 # Version Notes
 
 ## Version 1.0
 
 Version 1.0 is the initial release of the Answer ALS OMOP dataset. It includes the essential clinical variables that could be consistently mapped to OMOP using established specifications and available vocabulary support. The goal of this release is to provide a reliable foundation for analysis and integration with other ALS datasets that use OMOP.
+
+## Version 1.1
+
+V1.1 processes the 17 September 2026 pull with the existing source-form coverage. It incorporates corrected medical-history relative dates, stable person-ID handling and reviewed exclusions, participant-independent mortality mapping, vocabulary updates, and targeted response, unit and measurement corrections.
 
 ## Version 2.0 (Planned)
 

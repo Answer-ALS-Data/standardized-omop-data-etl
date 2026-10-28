@@ -18,137 +18,116 @@ logging.basicConfig(
 DISEASE_CONCEPTS = {
     "fhalz": {
         "id": 378419,
-        "name": "Alzheimer's disease",
         "source": "Alzheimer's Disease",
         "equivalence": "EQUAL",
     },
     "fhals": {
         "id": 373182,
-        "name": "Amyotrophic lateral sclerosis",
         "source": "Amyotrophic Lateral Sclerosis",
         "equivalence": "EQUAL",
     },
-    "fhdem": {"id": 4182210, "name": "Dementia", "source": "Dementia", "equivalence": "EQUAL"},
+    "fhdem": {"id": 4182210, "source": "Dementia", "equivalence": "EQUAL"},
     "fhdown": {
         "id": 4320803,
-        "name": "Anomaly of chromosome pair 21",
         "source": "Down's Syndrome",
         "equivalence": "EQUAL",
     },
     "fhftd": {
         "id": 4043378,
-        "name": "Frontotemporal dementia",
         "source": "Frontotemporal Dementia",
         "equivalence": "EQUAL",
     },
     "fhhd": {
         "id": 374341,
-        "name": "Huntington's chorea",
         "source": "Huntington's Disease",
         "equivalence": "EQUAL",
     },
     "fhpd": {
         "id": 381270,
-        "name": "Parkinson's disease",
         "source": "Parkinson's Disease",
         "equivalence": "EQUAL",
     },
     "fhpsy": {
         "id": 36308213,
-        "name": "Psychiatric disorder",
         "source": "Psychiatric Disorder",
         "equivalence": "EQUAL",
     },
-    "fharth": {"id": 4291025, "name": "Arthritis", "source": "Arthritis", "equivalence": "EQUAL"},
-    "fhasth": {"id": 317009, "name": "Asthma", "source": "Asthma", "equivalence": "EQUAL"},
+    "fharth": {"id": 4291025, "source": "Arthritis", "equivalence": "EQUAL"},
+    "fhasth": {"id": 317009, "source": "Asthma", "equivalence": "EQUAL"},
     "fhcanc": {
         "id": 443392,
-        "name": "Malignant neoplastic disease",
         "source": "Cancer",
         "equivalence": "EQUAL",
     },
     "fhcirc": {
         "id": 443784,
-        "name": "Vascular disorder",
         "source": "Circulation Problems",
         "equivalence": "EQUAL",
     },
-    "fhdiab": {"id": 201820, "name": "Diabetes mellitus", "source": "Diabetes", "equivalence": "EQUAL"},
-    "fhhrt": {"id": 321588, "name": "Heart disease", "source": "Heart Disease", "equivalence": "EQUAL"},
+    "fhdiab": {"id": 201820, "source": "Diabetes", "equivalence": "EQUAL"},
+    "fhhrt": {"id": 321588, "source": "Heart Disease", "equivalence": "EQUAL"},
     "fhhbp": {
         "id": 316866,
-        "name": "Hypertensive disorder",
         "source": "High Blood Pressure",
         "equivalence": "EQUAL",
     },
     "fhlung": {
         "id": 320136,
-        "name": "Disorder of respiratory system",
         "source": "Lung Disease",
         "equivalence": "WIDER",
     },
-    "fhstk": {"id": 381316, "name": "Cerebrovascular accident", "source": "Stroke", "equivalence": "WIDER"},
+    "fhstk": {"id": 381316, "source": "Stroke", "equivalence": "WIDER"},
 }
 
 # Gene concept mappings
 GENE_CONCEPTS = {
     "fhgnang": {
         "id": 35961859,
-        "name": "ANG (angiogenin) gene variant measurement",
         "source": "ANG",
         "equivalence": "EQUAL",
     },
     "fhgnc9": {
         "id": 35954626,
-        "name": "C9orf72 (C9orf72-SMCR8 complex subunit) gene variant measurement",
         "source": "C90RF72",
         "equivalence": "EQUAL",
     },
     "fhgnfus": {
         "id": 19643404,
-        "name": "FUS gene rearrangement measurement",
         "source": "FUS",
         "equivalence": "EQUAL",
     },
     "fhgnprg": {
         "id": 35951629,
-        "name": "GRN (granulin precursor) gene variant measurement",
         "source": "Progranulin",
         "equivalence": "EQUAL",
     },
     "fhgnsetx": {
         "id": 35958907,
-        "name": "SETX (senataxin) gene variant measurement",
         "source": "SETX",
         "equivalence": "EQUAL",
     },
     "fhgnsod1": {
         "id": 35948140,
-        "name": "SOD1 (superoxide dismutase 1) gene variant measurement",
         "source": "SOD1",
         "equivalence": "EQUAL",
     },
     "fhgntau": {
         "id": 35946715,
-        "name": "MAPT (microtubule associated protein tau) gene variant measurement",
         "source": "TAU",
         "equivalence": "EQUAL",
     },
     "fhgntdp": {
         "id": 35964178,
-        "name": "TARDBP (TAR DNA binding protein) gene variant measurement",
         "source": "TDP-43",
         "equivalence": "EQUAL",
     },
     "fhgnvapb": {
         "id": 35956055,
-        "name": "VAPB (VAMP associated protein B and C) gene variant measurement",
         "source": "VAPB",
         "equivalence": "EQUAL",
     },
     "fhgnvcp": {
         "id": 35958302,
-        "name": "VCP (valosin containing protein) gene variant measurement",
         "source": "VCP",
         "equivalence": "EQUAL",
     },
@@ -175,7 +154,7 @@ FAMILY_RELATIONSHIP_EQUIVALENCE = {
 
 
 def get_relative_concept(famrel, famher):
-    """Map family relationship and heredity to concept ID and name"""
+    """Map family relationship and heredity to concept ID"""
     # Convert famrel to string if it's a valid value
     famrel = str(famrel).strip().lower() if pd.notna(famrel) else ""
     # Handle famher value - could be float or string
@@ -215,45 +194,24 @@ def get_relative_concept(famrel, famher):
 
     # Define concepts with descriptive text keys
     concepts = {
-        "mother": (
-            4051255,
-            "Family history with explicit context pertaining to mother",
-        ),
-        "father": (
-            4051256,
-            "Family history with explicit context pertaining to father",
-        ),
-        "sister": (
-            4051258,
-            "Family history with explicit context pertaining to sister",
-        ),
-        "brother": (
-            4051262,
-            "Family history with explicit context pertaining to brother",
-        ),
-        "sister2": (
-            4051258,
-            "Family history with explicit context pertaining to sister",
-        ),
-        "brother2": (
-            4051262,
-            "Family history with explicit context pertaining to brother",
-        ),
-        "daughter": (
-            4054433,
-            "Family history with explicit context pertaining to daughter",
-        ),
-        "son": (4052795, "Family history with explicit context pertaining to son"),
-        "aunt": (4050943, "Family history with explicit context pertaining to aunt"),
-        "uncle": (4051265, "Family history with explicit context pertaining to uncle"),
-        "cousin": (713135, "Family history with explicit context pertaining to cousin"),
+        "mother": 4051255,
+        "father": 4051256,
+        "sister": 4051258,
+        "brother": 4051262,
+        "sister2": 4051258,
+        "brother2": 4051262,
+        "daughter": 4054433,
+        "son": 4052795,
+        "aunt": 4050943,
+        "uncle": 4051265,
+        "cousin": 713135,
     }
 
     # No standard Observation target distinguishes grandmother/grandfather without
     # lineage in the pinned vocabulary. Keep the relationship in source text and
     # use the broader family-history concept rather than inventing paternal lineage.
     if famrel in ("grandmother", "grandfather") and not famher:
-        return (4210989, "Family history with explicit context"), "BLANK", "WIDER"
+        return 4210989, "BLANK", "WIDER"
 
     # Preserve explicitly supplied grandparent lineage.
     if famrel == "grandmother":
@@ -267,15 +225,9 @@ def get_relative_concept(famrel, famher):
         logging.info(f"Grandmother case - famher: {famher}, is_maternal: {is_maternal}")
         return (
             (
-                (
-                    4050942,
-                    "Family history with explicit context pertaining to maternal grandmother",
-                )
+                4050942
                 if is_maternal
-                else (
-                    4052802,
-                    "Family history with explicit context pertaining to paternal grandmother",
-                )
+                else 4052802
             ),
             heredity_source,
             FAMILY_RELATIONSHIP_EQUIVALENCE.get(equivalence_key, ""),
@@ -291,15 +243,9 @@ def get_relative_concept(famrel, famher):
         logging.info(f"Grandfather case - famher: {famher}, is_maternal: {is_maternal}")
         return (
             (
-                (
-                    4052800,
-                    "Family history with explicit context pertaining to maternal grandfather",
-                )
+                4052800
                 if is_maternal
-                else (
-                    4052801,
-                    "Family history with explicit context pertaining to paternal grandfather",
-                )
+                else 4052801
             ),
             heredity_source,
             FAMILY_RELATIONSHIP_EQUIVALENCE.get(equivalence_key, ""),
@@ -307,7 +253,7 @@ def get_relative_concept(famrel, famher):
 
     # Return the concept if found, along with None for heredity_source and equivalence for this relationship
     equivalence = FAMILY_RELATIONSHIP_EQUIVALENCE.get(famrel, "")
-    return concepts.get(famrel, (None, None)), None, equivalence
+    return concepts.get(famrel), None, equivalence
 
 
 def create_base_observation(row, index_date):
@@ -341,7 +287,7 @@ def process_family_history(row, index_date):
 
     try:
         # Get the family relationship concept
-        (concept_id, concept_name), heredity_source, family_equivalence = get_relative_concept(
+        concept_id, heredity_source, family_equivalence = get_relative_concept(
             row["famrel"], row.get("famher", "")
         )
 

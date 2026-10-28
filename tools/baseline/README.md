@@ -16,7 +16,9 @@ python tools/baseline/run.py \
 
 For current V1.1 development revisions, also pass `--identity-policy /path/to/private-policy`, containing the pinned `person_id_registry.csv` and `exclusions.json`. Historical revisions before identity-policy support do not require this argument. See [identity handling](../../docs/identity-handling.md); these policy inputs are copied and hashed alongside the clinical and auxiliary inputs.
 
-The medical-history update also requires `--medical-history-profile /path/to/preparation.json` for current revisions. See [date profiles](../../docs/medical-history-dates.md); old and September inputs must use their respective explicit profiles.
+Current V1.1 code interprets medical-history dates as relative days by default; September inputs need no date-profile file. For older year-based inputs, pass `--medical-history-profile /path/to/preparation.json` with `medical_history_units` set to `years`. Earlier development revisions that required explicit profiles still need that argument. See [medical-history dates](../../docs/medical-history-dates.md).
+
+The missing-output check expects the ten V1.1 final tables. Device output is deferred to V2; any additional tables emitted by a historical revision are still recorded in the run manifest.
 
 The runner exports committed code without working-tree edits, copies inputs,
 and invokes the original pipeline in that separate directory. It records the
