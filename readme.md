@@ -74,7 +74,7 @@ The source Answer ALS clinical dataset includes a set of structured study forms 
 
 ## Mapping Specifications
 
-The [AALS OMOP Mapping Specifications (MVP)](https://docs.google.com/spreadsheets/d/16pI6KIVo-zGIo8Sdoqygbev7C_600JDpmEdok1BRBnY/edit?gid=1327264875#gid=1327264875) workbook was used to plan the mappings for all Version 1.0 tables. Each sheet in the workbook corresponds to an OMOP target table and lists the associated source tables, variable level mappings, target concept IDs, and any special considerations. Detailed variable mappings and rationale belong in this workbook. Reconciliation of the workbook with the V1.1 implementation is pending. These specifications guided the development of the ETL scripts hosted in the [Answer ALS standardized OMOP GitHub repository](https://github.com/Answer-ALS-Data/standardized-omop-data-etl).
+The [AALS OMOP Mapping Specifications (MVP)](https://docs.google.com/spreadsheets/d/16pI6KIVo-zGIo8Sdoqygbev7C_600JDpmEdok1BRBnY/edit?gid=1327264875#gid=1327264875) workbook was used to plan the mappings for all Version 1.0 tables. Each sheet in the workbook corresponds to an OMOP target table and lists the associated source tables, variable level mappings, target concept IDs, and any special considerations. Detailed variable mappings and rationale belong in this workbook. Reconciliation of the workbook with the V1.1 implementation is pending. These specifications guided the development of the ETL scripts hosted in the [Answer ALS standardized OMOP GitHub repository](https://github.com/Neuromine-Data/aals-standardized-omop-etl).
 
 ## Vocabulary and Custom Concepts
 
